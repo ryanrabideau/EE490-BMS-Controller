@@ -1,0 +1,10 @@
+/Debug/
+/Release/
+*.elf
+*.bin
+*.hex
+*.o
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
