@@ -1,0 +1,12 @@
+../Core/Src/L9963E.c:16:22:L9963E_init	40	static
+../Core/Src/L9963E.c:32:22:L9963E_addressing_procedure	40	static
+../Core/Src/L9963E.c:108:22:L9963E_sw_rst	32	static
+../Core/Src/L9963E.c:124:22:L9963E_trimming_retrigger	32	static
+../Core/Src/L9963E.c:159:22:L9963E_setCommTimeout	32	static
+../Core/Src/L9963E.c:187:22:L9963E_set_enabled_cells	32	static
+../Core/Src/L9963E.c:250:22:L9963E_start_conversion	32	static
+../Core/Src/L9963E.c:273:22:L9963E_poll_conversion	40	static
+../Core/Src/L9963E.c:297:22:L9963E_read_cell_voltage	48	static
+../Core/Src/L9963E.c:377:22:L9963E_read_batt_voltage	48	static
+../Core/Src/L9963E.c:414:22:L9963E_read_gpio_voltage	48	static
+../Core/Src/L9963E.c:473:22:L9963E_enable_vref	32	static
