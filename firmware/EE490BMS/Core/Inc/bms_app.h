@@ -4,7 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define BMS_CELL_COUNT 7U
+#define BMS_CELL_COUNT         7U
+#define BMS_TEMP_CHANNEL_COUNT 7U
 
 typedef struct
 {
@@ -23,10 +24,24 @@ typedef struct
 
 } BMS_VoltageData_t;
 
+typedef struct
+{
+    uint16_t raw[BMS_TEMP_CHANNEL_COUNT];
+
+    float gpioVoltage[BMS_TEMP_CHANNEL_COUNT];
+
+    bool valid;
+
+} BMS_TemperatureData_t;
+
 void BMS_App_Init(void);
 
 bool BMS_App_UpdateVoltages(void);
 
+bool BMS_App_UpdateTemperatureInputs(void);
+
 const BMS_VoltageData_t *BMS_App_GetVoltageData(void);
+
+const BMS_TemperatureData_t *BMS_App_GetTemperatureData(void);
 
 #endif
