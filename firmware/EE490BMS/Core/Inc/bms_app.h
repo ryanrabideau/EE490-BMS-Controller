@@ -1,0 +1,32 @@
+#ifndef BMS_APP_H
+#define BMS_APP_H
+
+#include <stdint.h>
+#include <stdbool.h>
+
+#define BMS_CELL_COUNT 7U
+
+typedef struct
+{
+    float cellVoltage[BMS_CELL_COUNT];
+
+    float packVoltage;
+
+    float minCellVoltage;
+    float maxCellVoltage;
+    float deltaVoltage;
+
+    uint8_t minCellIndex;
+    uint8_t maxCellIndex;
+
+    bool valid;
+
+} BMS_VoltageData_t;
+
+void BMS_App_Init(void);
+
+bool BMS_App_UpdateVoltages(void);
+
+const BMS_VoltageData_t *BMS_App_GetVoltageData(void);
+
+#endif
