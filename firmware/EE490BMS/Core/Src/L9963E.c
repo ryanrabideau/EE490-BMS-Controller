@@ -57,7 +57,7 @@ L9963E_StatusTypeDef L9963E_addressing_procedure(L9963E_HandleTypeDef *handle,
 	while (x == 1)
 	{
 		//readback, if successful continue, else repeat the same cycle
-		L9963E_StatusTypeDef var = L9963E_DRV_reg_read(&(handle->drv_handle), x, L9963E_DEV_GEN_CFG_ADDR, &read_reg, 1000);
+		L9963E_StatusTypeDef var = L9963E_DRV_reg_read(&(handle->drv_handle), x, L9963E_DEV_GEN_CFG_ADDR, &read_reg, 10);
 		if (var == L9963E_OK && read_reg.DEV_GEN_CFG.chip_ID == x) {
 			x++;
 			tick = L9963E_DRV_GETTICK(&(handle->drv_handle));
@@ -66,7 +66,7 @@ L9963E_StatusTypeDef L9963E_addressing_procedure(L9963E_HandleTypeDef *handle,
 			//wakeup the device
 			L9963E_DRV_wakeup(&(handle->drv_handle));
 			// by default the wakeup procedure needs 2 ms of time (T_WAKEUP)
-			L9963E_DRV_DELAY(&(handle->drv_handle), 100);
+			L9963E_DRV_DELAY(&(handle->drv_handle), 2);
 
 			//send broadcast command setting the chip_idz
 			write_reg.generic                  = L9963E_DEV_GEN_CFG_DEFAULT;
@@ -79,6 +79,11 @@ L9963E_StatusTypeDef L9963E_addressing_procedure(L9963E_HandleTypeDef *handle,
 				&(handle->drv_handle), L9963E_DEVICE_BROADCAST, L9963E_DEV_GEN_CFG_ADDR, &write_reg, 10);
 		}
 	}
+	write_reg.generic = L9963E_FASTCH_BALUV_DEFAULT;
+	write_reg.fastch_baluv.CommTimeout = 0b11;
+
+	L9963E_DRV_reg_write(
+		&(handle->drv_handle), L9963E_DEVICE_BROADCAST, L9963E_fastch_baluv_ADDR, &write_reg, 10);
 	while (1) {
 		x++;
 		x--;
