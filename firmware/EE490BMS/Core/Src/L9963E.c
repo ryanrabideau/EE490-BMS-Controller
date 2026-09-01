@@ -45,36 +45,46 @@ L9963E_StatusTypeDef L9963E_addressing_procedure(L9963E_HandleTypeDef *handle,
         return L9963E_ERROR;
     }
 #endif
+//    while (1) {
+//    	L9963E_DRV_DELAY(&(handle->drv_handle), 100);
+//    }
 
-    while (x <= handle->slave_n) {
-        write_reg.generic = 0;
-        read_reg.generic  = 0;
+	write_reg.generic = 0;
+	read_reg.generic  = 0;
 
-        //readback, if successful continue, else repeat the same cycle
-        if (L9963E_DRV_reg_read(&(handle->drv_handle), x, L9963E_DEV_GEN_CFG_ADDR, &read_reg, 10) == L9963E_OK &&
-            read_reg.DEV_GEN_CFG.chip_ID == x) {
-            ++x;
-            tick = L9963E_DRV_GETTICK(&(handle->drv_handle));
-        } else {
-            if (L9963E_DRV_GETTICK(&(handle->drv_handle)) - tick >= 10) {
-                return L9963E_TIMEOUT;
-            }
+	L9963E_DRV_wakeup(&(handle->drv_handle));
+	L9963E_DRV_DELAY(&(handle->drv_handle), 2);
+	while (x == 1)
+	{
+		//readback, if successful continue, else repeat the same cycle
+		L9963E_StatusTypeDef var = L9963E_DRV_reg_read(&(handle->drv_handle), x, L9963E_DEV_GEN_CFG_ADDR, &read_reg, 1000);
+		if (var == L9963E_OK && read_reg.DEV_GEN_CFG.chip_ID == x) {
+			x++;
+			tick = L9963E_DRV_GETTICK(&(handle->drv_handle));
+		} else {
 
-            //wakeup the device
-            L9963E_DRV_wakeup(&(handle->drv_handle));
-            // by default the wakeup procedure needs 2 ms of time (T_WAKEUP)
-            L9963E_DRV_DELAY(&(handle->drv_handle), 2);
+			//wakeup the device
+			L9963E_DRV_wakeup(&(handle->drv_handle));
+			// by default the wakeup procedure needs 2 ms of time (T_WAKEUP)
+			L9963E_DRV_DELAY(&(handle->drv_handle), 100);
 
-            //send broadcast command setting the chip_idz
-            write_reg.generic                  = L9963E_DEV_GEN_CFG_DEFAULT;
-            write_reg.DEV_GEN_CFG.chip_ID      = x;
-            write_reg.DEV_GEN_CFG.iso_freq_sel = 0b00;
-            write_reg.DEV_GEN_CFG.isotx_en_h   = 0b1;
+			//send broadcast command setting the chip_idz
+			write_reg.generic                  = L9963E_DEV_GEN_CFG_DEFAULT;
+			write_reg.DEV_GEN_CFG.chip_ID      = x;
+			write_reg.DEV_GEN_CFG.isotx_en_h   = 0b0;
+			write_reg.DEV_GEN_CFG.iso_freq_sel = 0b00;
 
-            L9963E_DRV_reg_write(
-                &(handle->drv_handle), L9963E_DEVICE_BROADCAST, L9963E_DEV_GEN_CFG_ADDR, &write_reg, 10);
-        }
-    }
+
+			L9963E_DRV_reg_write(
+				&(handle->drv_handle), L9963E_DEVICE_BROADCAST, L9963E_DEV_GEN_CFG_ADDR, &write_reg, 10);
+		}
+	}
+	while (1) {
+		x++;
+		x--;
+	}
+	return L9963E_OK;
+
 
     write_reg.generic                    = L9963E_DEV_GEN_CFG_DEFAULT;
     write_reg.DEV_GEN_CFG.isotx_en_h     = 0b1;

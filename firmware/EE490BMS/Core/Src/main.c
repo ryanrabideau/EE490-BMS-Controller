@@ -109,12 +109,17 @@ int main(void)
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
 	HAL_GPIO_WritePin(GPIOA, LD2_Pin, GPIO_PIN_SET);
-	HAL_Delay(1000);
+	HAL_Delay(4000);
 	HAL_GPIO_WritePin(GPIOA, LD2_Pin, GPIO_PIN_RESET);
+	L9963E_utils_init();
 	while (1)
 	{
 		//Try to get communication to work
-		L9963E_utils_init();
+
+//		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
+//		HAL_Delay(1000);
+//		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+//		HAL_Delay(1000);
 
 
 	}
@@ -237,7 +242,7 @@ static void MX_SPI2_Init(void)
   hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi2.Init.CLKPhase = SPI_PHASE_2EDGE;
   hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
   hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;

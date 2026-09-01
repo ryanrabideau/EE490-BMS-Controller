@@ -1,6 +1,6 @@
-../Core/Src/L9963E_utils.c:27:6:L9963E_utils_init	48	static
-../Core/Src/L9963E_utils.c:50:6:L9963E_utils_read_cells	32	static
-../Core/Src/L9963E_utils.c:141:17:L9963E_utils_get_gpios	16	static
-../Core/Src/L9963E_utils.c:147:17:L9963E_utils_get_cells	16	static
-../Core/Src/L9963E_utils.c:153:7:L9963E_utils_get_cell_mv	16	static
-../Core/Src/L9963E_utils.c:157:6:L9963E_utils_get_batt_mv	16	static
+../Core/Src/L9963E_utils.c:29:6:L9963E_utils_init	40	static
+../Core/Src/L9963E_utils.c:53:6:L9963E_utils_read_cells	32	static
+../Core/Src/L9963E_utils.c:144:17:L9963E_utils_get_gpios	16	static
+../Core/Src/L9963E_utils.c:150:17:L9963E_utils_get_cells	16	static
+../Core/Src/L9963E_utils.c:156:7:L9963E_utils_get_cell_mv	16	static
+../Core/Src/L9963E_utils.c:160:6:L9963E_utils_get_batt_mv	16	static

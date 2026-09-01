@@ -6,6 +6,8 @@
 //#include "usart.h"
 #include <stdio.h>
 #include <string.h>
+#include "stm32f4xx_hal.h"		//To be removed
+#include "main.h"
 
 //#include "logger_wrapper.h"
 
@@ -25,26 +27,27 @@ const L9963E_IfTypeDef interface = {
 };
 
 void L9963E_utils_init(void) {
-  L9963E_init(&h9l, interface, 1);
-  L9963E_addressing_procedure(&h9l, 0b11, 0, 0, 1);
 
-  L9963E_RegisterUnionTypeDef gpio9_3_conf_reg = {.generic = L9963E_GPIO9_3_CONF_DEFAULT};
-  gpio9_3_conf_reg.GPIO9_3_CONF.GPIO7_CONFIG = 0;
-  gpio9_3_conf_reg.GPIO9_3_CONF.GPIO8_CONFIG = 0;
-  L9963E_DRV_reg_write(&(h9l.drv_handle), L9963E_DEVICE_BROADCAST, L9963E_GPIO9_3_CONF_ADDR, &gpio9_3_conf_reg, 10);
+	L9963E_init(&h9l, interface, 1);
+	L9963E_StatusTypeDef status = L9963E_addressing_procedure(&h9l, 0b11, 0, 0, 1);
 
-  L9963E_RegisterUnionTypeDef vcell_thresh_uv_ov_reg = {.generic = L9963E_VCELL_THRESH_UV_OV_DEFAULT};
-  vcell_thresh_uv_ov_reg.VCELL_THRESH_UV_OV.threshVcellOV = 0xff;
-  L9963E_DRV_reg_write(&(h9l.drv_handle), L9963E_DEVICE_BROADCAST, L9963E_VCELL_THRESH_UV_OV_ADDR, &vcell_thresh_uv_ov_reg, 10);
-
-  L9963E_RegisterUnionTypeDef vbat_sum_th_reg = {.generic = L9963E_VBATT_SUM_TH_DEFAULT};
-  vbat_sum_th_reg.VBATT_SUM_TH.VBATT_SUM_OV_TH = 0xff;
-  L9963E_DRV_reg_write(&(h9l.drv_handle), L9963E_DEVICE_BROADCAST, L9963E_VBATT_SUM_TH_ADDR, &vbat_sum_th_reg, 10);
-
-  L9963E_enable_vref(&h9l, L9963E_DEVICE_BROADCAST, 0);
-  
-  L9963E_setCommTimeout(&h9l, _256MS, L9963E_DEVICE_BROADCAST, 0);
-  L9963E_set_enabled_cells(&h9l, 0x1, ENABLED_CELLS);
+//  L9963E_RegisterUnionTypeDef gpio9_3_conf_reg = {.generic = L9963E_GPIO9_3_CONF_DEFAULT};
+//  gpio9_3_conf_reg.GPIO9_3_CONF.GPIO7_CONFIG = 0;
+//  gpio9_3_conf_reg.GPIO9_3_CONF.GPIO8_CONFIG = 0;
+//  L9963E_DRV_reg_write(&(h9l.drv_handle), L9963E_DEVICE_BROADCAST, L9963E_GPIO9_3_CONF_ADDR, &gpio9_3_conf_reg, 10);
+//
+//  L9963E_RegisterUnionTypeDef vcell_thresh_uv_ov_reg = {.generic = L9963E_VCELL_THRESH_UV_OV_DEFAULT};
+//  vcell_thresh_uv_ov_reg.VCELL_THRESH_UV_OV.threshVcellOV = 0xff;
+//  L9963E_DRV_reg_write(&(h9l.drv_handle), L9963E_DEVICE_BROADCAST, L9963E_VCELL_THRESH_UV_OV_ADDR, &vcell_thresh_uv_ov_reg, 10);
+//
+//  L9963E_RegisterUnionTypeDef vbat_sum_th_reg = {.generic = L9963E_VBATT_SUM_TH_DEFAULT};
+//  vbat_sum_th_reg.VBATT_SUM_TH.VBATT_SUM_OV_TH = 0xff;
+//  L9963E_DRV_reg_write(&(h9l.drv_handle), L9963E_DEVICE_BROADCAST, L9963E_VBATT_SUM_TH_ADDR, &vbat_sum_th_reg, 10);
+//
+//  L9963E_enable_vref(&h9l, L9963E_DEVICE_BROADCAST, 0);
+//
+//  L9963E_setCommTimeout(&h9l, _256MS, L9963E_DEVICE_BROADCAST, 0);
+//  L9963E_set_enabled_cells(&h9l, 0x1, ENABLED_CELLS);
 }
 
 void L9963E_utils_read_cells(uint8_t read_gpio) {
