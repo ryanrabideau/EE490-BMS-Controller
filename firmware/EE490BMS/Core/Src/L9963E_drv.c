@@ -257,7 +257,8 @@ L9963E_StatusTypeDef _L9963E_DRV_reg_cmd(L9963E_DRV_HandleTypeDef *handle,
                                          uint8_t device,
                                          L9963E_RegistersAddrTypeDef address,
                                          L9963E_RegisterUnionTypeDef *data,
-                                         uint8_t timeout) {
+                                         uint8_t timeout,
+										 uint8_t bypass) {
     union L9963E_DRV_FrameUnion frame;
     L9963E_StatusTypeDef errorcode = L9963E_OK;
     uint8_t raw[5];
@@ -286,7 +287,7 @@ L9963E_StatusTypeDef _L9963E_DRV_reg_cmd(L9963E_DRV_HandleTypeDef *handle,
         return errorcode;
     }
 
-    if (is_write && frame.cmd.data != data->generic) {
+    if (is_write && frame.cmd.data != data->generic && !bypass) {
         return L9963E_READBACK_ERROR;
     }
 
@@ -299,22 +300,24 @@ L9963E_StatusTypeDef L9963E_DRV_reg_read(L9963E_DRV_HandleTypeDef *handle,
                                          uint8_t device,
                                          L9963E_RegistersAddrTypeDef address,
                                          L9963E_RegisterUnionTypeDef *data,
-                                         uint8_t timeout) {
+                                         uint8_t timeout,
+										 uint8_t bypass) {
 #if L9963E_DEBUG
     if (device == 0) {
         return L9963E_ERROR;
     }
 #endif
 
-    return _L9963E_DRV_reg_cmd(handle, 0, device, address, data, timeout);
+    return _L9963E_DRV_reg_cmd(handle, 0, device, address, data, timeout, bypass);
 }
 
 L9963E_StatusTypeDef L9963E_DRV_reg_write(L9963E_DRV_HandleTypeDef *handle,
                                           uint8_t device,
                                           L9963E_RegistersAddrTypeDef address,
                                           L9963E_RegisterUnionTypeDef *data,
-                                          uint8_t timeout) {
-    return _L9963E_DRV_reg_cmd(handle, 1, device, address, data, timeout);
+                                          uint8_t timeout,
+										  uint8_t bypass) {
+    return _L9963E_DRV_reg_cmd(handle, 1, device, address, data, timeout, bypass);
 }
 
 L9963E_StatusTypeDef L9963E_DRV_trans_sleep(L9963E_DRV_HandleTypeDef *handle) {

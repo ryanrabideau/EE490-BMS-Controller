@@ -109,9 +109,11 @@ int main(void)
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
 	HAL_GPIO_WritePin(GPIOA, LD2_Pin, GPIO_PIN_SET);
-	HAL_Delay(2000);
+	HAL_Delay(100);
 	HAL_GPIO_WritePin(GPIOA, LD2_Pin, GPIO_PIN_RESET);
 	L9963E_utils_init();
+	L9963E_utils_read_cells(0);
+
 	while (1)
 	{
 		//Try to get communication to work
