@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define BMS_CELL_COUNT         7U
-#define BMS_TEMP_CHANNEL_COUNT 7U
+#define BMS_CELL_COUNT          7U
+#define BMS_TEMP_CHANNEL_COUNT  7U
 
 typedef struct
 {
@@ -34,14 +34,37 @@ typedef struct
 
 } BMS_TemperatureData_t;
 
+typedef enum
+{
+    BMS_VOLTAGE_OK = 0,
+    BMS_CELL_UNDERVOLTAGE,
+    BMS_CELL_OVERVOLTAGE,
+    BMS_VOLTAGE_DATA_INVALID
+
+} BMS_VoltageFault_t;
+
+typedef struct
+{
+    BMS_VoltageFault_t fault;
+
+    uint8_t faultCellIndex;
+
+    bool faultActive;
+
+} BMS_FaultData_t;
+
 void BMS_App_Init(void);
 
 bool BMS_App_UpdateVoltages(void);
 
 bool BMS_App_UpdateTemperatureInputs(void);
 
+void BMS_App_CheckVoltageFaults(void);
+
 const BMS_VoltageData_t *BMS_App_GetVoltageData(void);
 
 const BMS_TemperatureData_t *BMS_App_GetTemperatureData(void);
+
+const BMS_FaultData_t *BMS_App_GetFaultData(void);
 
 #endif
