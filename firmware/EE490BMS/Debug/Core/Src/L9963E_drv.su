@@ -7,8 +7,8 @@
 ../Core/Src/L9963E_drv.c:169:22:_L9963E_DRV_wait_and_receive	40	static
 ../Core/Src/L9963E_drv.c:209:22:L9963E_DRV_burst_cmd	56	static
 ../Core/Src/L9963E_drv.c:255:22:_L9963E_DRV_reg_cmd	48	static
-../Core/Src/L9963E_drv.c:298:22:L9963E_DRV_reg_read	32	static
-../Core/Src/L9963E_drv.c:312:22:L9963E_DRV_reg_write	32	static
-../Core/Src/L9963E_drv.c:320:22:L9963E_DRV_trans_sleep	16	static
-../Core/Src/L9963E_drv.c:330:22:L9963E_DRV_trans_wakeup	16	static
-../Core/Src/L9963E_drv.c:340:20:L9963E_DRV_trans_is_sleeping	16	static
+../Core/Src/L9963E_drv.c:299:22:L9963E_DRV_reg_read	40	static
+../Core/Src/L9963E_drv.c:314:22:L9963E_DRV_reg_write	40	static
+../Core/Src/L9963E_drv.c:323:22:L9963E_DRV_trans_sleep	16	static
+../Core/Src/L9963E_drv.c:333:22:L9963E_DRV_trans_wakeup	16	static
+../Core/Src/L9963E_drv.c:343:20:L9963E_DRV_trans_is_sleeping	16	static

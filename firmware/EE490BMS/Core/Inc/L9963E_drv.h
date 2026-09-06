@@ -92,7 +92,8 @@ L9963E_StatusTypeDef L9963E_DRV_reg_read(L9963E_DRV_HandleTypeDef *handle,
                                          uint8_t device,
                                          L9963E_RegistersAddrTypeDef address,
                                          L9963E_RegisterUnionTypeDef *data,
-                                         uint8_t timeout);
+                                         uint8_t timeout,
+										 uint8_t bypass);
 /**
  * @brief     Writes a register
  * 
@@ -106,7 +107,8 @@ L9963E_StatusTypeDef L9963E_DRV_reg_write(L9963E_DRV_HandleTypeDef *handle,
                                           uint8_t device,
                                           L9963E_RegistersAddrTypeDef address,
                                           L9963E_RegisterUnionTypeDef *data,
-                                          uint8_t timeout);
+                                          uint8_t timeout,
+										  uint8_t bypass);
 /**
  * @brief     Calculates the CRC6
  * 

@@ -37,7 +37,7 @@ L9963E_StatusTypeDef L9963E_addressing_procedure(L9963E_HandleTypeDef *handle,
     L9963E_RegisterUnionTypeDef write_reg;
     L9963E_RegisterUnionTypeDef read_reg;
 
-    uint32_t tick = L9963E_DRV_GETTICK(&(handle->drv_handle));
+//    uint32_t tick = L9963E_DRV_GETTICK(&(handle->drv_handle));
     uint8_t x     = 1;
 
 #if L9963E_DEBUG
@@ -45,64 +45,71 @@ L9963E_StatusTypeDef L9963E_addressing_procedure(L9963E_HandleTypeDef *handle,
         return L9963E_ERROR;
     }
 #endif
+//    while (1) {
+//    	L9963E_DRV_DELAY(&(handle->drv_handle), 100);
+//    }
 
-    while (x <= handle->slave_n) {
-        write_reg.generic = 0;
-        read_reg.generic  = 0;
+	write_reg.generic = 0;
+	read_reg.generic  = 0;
 
-        //readback, if successful continue, else repeat the same cycle
-        if (L9963E_DRV_reg_read(&(handle->drv_handle), x, L9963E_DEV_GEN_CFG_ADDR, &read_reg, 10) == L9963E_OK &&
-            read_reg.DEV_GEN_CFG.chip_ID == x) {
-            ++x;
-            tick = L9963E_DRV_GETTICK(&(handle->drv_handle));
-        } else {
-            if (L9963E_DRV_GETTICK(&(handle->drv_handle)) - tick >= 10) {
-                return L9963E_TIMEOUT;
-            }
+	L9963E_DRV_wakeup(&(handle->drv_handle));
+	L9963E_DRV_DELAY(&(handle->drv_handle), 2);
+	while (x == 1)
+	{
+		//readback, if successful continue, else repeat the same cycle
+		L9963E_StatusTypeDef var = L9963E_DRV_reg_read(&(handle->drv_handle), x, L9963E_DEV_GEN_CFG_ADDR, &read_reg, 10, 0);
+		if (var == L9963E_OK && read_reg.DEV_GEN_CFG.chip_ID == x) {
+			x++;
+			//tick = L9963E_DRV_GETTICK(&(handle->drv_handle));
+		} else {
 
-            //wakeup the device
-            L9963E_DRV_wakeup(&(handle->drv_handle));
-            // by default the wakeup procedure needs 2 ms of time (T_WAKEUP)
-            L9963E_DRV_DELAY(&(handle->drv_handle), 2);
+			//wakeup the device
+			L9963E_DRV_wakeup(&(handle->drv_handle));
+			// by default the wakeup procedure needs 2 ms of time (T_WAKEUP)
+			L9963E_DRV_DELAY(&(handle->drv_handle), 2);
 
-            //send broadcast command setting the chip_idz
-            write_reg.generic                  = L9963E_DEV_GEN_CFG_DEFAULT;
-            write_reg.DEV_GEN_CFG.chip_ID      = x;
-            write_reg.DEV_GEN_CFG.iso_freq_sel = 0b00;
-            write_reg.DEV_GEN_CFG.isotx_en_h   = 0b1;
+			//send broadcast command setting the chip_idz
+			write_reg.generic                  = L9963E_DEV_GEN_CFG_DEFAULT;
+			write_reg.DEV_GEN_CFG.chip_ID      = x;
+			write_reg.DEV_GEN_CFG.isotx_en_h   = 0b0;
+			write_reg.DEV_GEN_CFG.iso_freq_sel = 0b00;
 
-            L9963E_DRV_reg_write(
-                &(handle->drv_handle), L9963E_DEVICE_BROADCAST, L9963E_DEV_GEN_CFG_ADDR, &write_reg, 10);
-        }
-    }
 
-    write_reg.generic                    = L9963E_DEV_GEN_CFG_DEFAULT;
-    write_reg.DEV_GEN_CFG.isotx_en_h     = 0b1;
-    write_reg.DEV_GEN_CFG.out_res_tx_iso = out_res_tx_iso;
-    write_reg.DEV_GEN_CFG.iso_freq_sel   = iso_freq_sel;
+			L9963E_DRV_reg_write(
+				&(handle->drv_handle), L9963E_DEVICE_BROADCAST, L9963E_DEV_GEN_CFG_ADDR, &write_reg, 10, 0);
+		}
+	}
+	return L9963E_OK;
 
-    if (iso_freq_sel == 0b11)
-        L9963E_DRV_ISOFREQ_HIGH(&(handle->drv_handle));
-    else
-        L9963E_DRV_ISOFREQ_LOW(&(handle->drv_handle));
+	//Unused addressing procedure
 
-    L9963E_DRV_reg_write(&(handle->drv_handle), L9963E_DEVICE_BROADCAST, L9963E_DEV_GEN_CFG_ADDR, &write_reg, 10);
-
-    write_reg.DEV_GEN_CFG.Farthest_Unit = 0b1;
-    if (!handle->is_dual_ring) {
-        write_reg.DEV_GEN_CFG.isotx_en_h = 0;
-    }
-
-    L9963E_DRV_reg_write(&(handle->drv_handle), handle->slave_n, L9963E_DEV_GEN_CFG_ADDR, &write_reg, 10);
-
-    if (lock_isofreq == 1) {
-        write_reg.generic                 = L9963E_BAL_3_DEFAULT;
-        write_reg.Bal_3.Lock_isoh_isofreq = 1;
-
-        L9963E_DRV_reg_write(&(handle->drv_handle), L9963E_DEVICE_BROADCAST, L9963E_Bal_3_ADDR, &write_reg, 10);
-    }
-
-    return L9963E_OK;
+//    write_reg.generic                    = L9963E_DEV_GEN_CFG_DEFAULT;
+//    write_reg.DEV_GEN_CFG.isotx_en_h     = 0b1;
+//    write_reg.DEV_GEN_CFG.out_res_tx_iso = out_res_tx_iso;
+//    write_reg.DEV_GEN_CFG.iso_freq_sel   = iso_freq_sel;
+//
+//    if (iso_freq_sel == 0b11)
+//        L9963E_DRV_ISOFREQ_HIGH(&(handle->drv_handle));
+//    else
+//        L9963E_DRV_ISOFREQ_LOW(&(handle->drv_handle));
+//
+//    L9963E_DRV_reg_write(&(handle->drv_handle), L9963E_DEVICE_BROADCAST, L9963E_DEV_GEN_CFG_ADDR, &write_reg, 10);
+//
+//    write_reg.DEV_GEN_CFG.Farthest_Unit = 0b1;
+//    if (!handle->is_dual_ring) {
+//        write_reg.DEV_GEN_CFG.isotx_en_h = 0;
+//    }
+//
+//    L9963E_DRV_reg_write(&(handle->drv_handle), handle->slave_n, L9963E_DEV_GEN_CFG_ADDR, &write_reg, 10);
+//
+//    if (lock_isofreq == 1) {
+//        write_reg.generic                 = L9963E_BAL_3_DEFAULT;
+//        write_reg.Bal_3.Lock_isoh_isofreq = 1;
+//
+//        L9963E_DRV_reg_write(&(handle->drv_handle), L9963E_DEVICE_BROADCAST, L9963E_Bal_3_ADDR, &write_reg, 10);
+//    }
+//
+//    return L9963E_OK;
 }
 
 L9963E_StatusTypeDef L9963E_sw_rst(L9963E_HandleTypeDef *handle, uint8_t device, uint8_t go2slp) {
@@ -118,7 +125,7 @@ L9963E_StatusTypeDef L9963E_sw_rst(L9963E_HandleTypeDef *handle, uint8_t device,
     FSM_reg.FSM.SW_RST = 0b10;
     FSM_reg.FSM.GO2SLP = go2slp ? 0b10 : 0b00;
 
-    return L9963E_DRV_reg_write(&(handle->drv_handle), device, L9963E_FSM_ADDR, &FSM_reg, 10);
+    return L9963E_DRV_reg_write(&(handle->drv_handle), device, L9963E_FSM_ADDR, &FSM_reg, 10, 0);
 }
 
 L9963E_StatusTypeDef L9963E_trimming_retrigger(L9963E_HandleTypeDef *handle,
@@ -134,7 +141,7 @@ L9963E_StatusTypeDef L9963E_trimming_retrigger(L9963E_HandleTypeDef *handle,
 #endif
 
     if (preserve_reg_value && device != L9963E_DEVICE_BROADCAST) {
-        errorcode = L9963E_DRV_reg_read(&(handle->drv_handle), device, L9963E_fastch_baluv_ADDR, &Bal3_reg, 10);
+        errorcode = L9963E_DRV_reg_read(&(handle->drv_handle), device, L9963E_fastch_baluv_ADDR, &Bal3_reg, 10, 0);
 
         if (errorcode != L9963E_OK) {
             return errorcode;
@@ -145,7 +152,7 @@ L9963E_StatusTypeDef L9963E_trimming_retrigger(L9963E_HandleTypeDef *handle,
 
     Bal3_reg.Bal_3.trimming_retrigger = 1;
 
-    errorcode = L9963E_DRV_reg_write(&(handle->drv_handle), device, L9963E_Bal_3_ADDR, &Bal3_reg, 10);
+    errorcode = L9963E_DRV_reg_write(&(handle->drv_handle), device, L9963E_Bal_3_ADDR, &Bal3_reg, 10, 0);
     if (errorcode != L9963E_OK) {
         return errorcode;
     }
@@ -153,7 +160,7 @@ L9963E_StatusTypeDef L9963E_trimming_retrigger(L9963E_HandleTypeDef *handle,
     L9963E_DRV_DELAY(&(handle->drv_handle), 10);
 
     Bal3_reg.Bal_3.trimming_retrigger = 0;
-    return L9963E_DRV_reg_write(&(handle->drv_handle), device, L9963E_Bal_3_ADDR, &Bal3_reg, 10);
+    return L9963E_DRV_reg_write(&(handle->drv_handle), device, L9963E_Bal_3_ADDR, &Bal3_reg, 10, 0);
 }
 
 L9963E_StatusTypeDef L9963E_setCommTimeout(L9963E_HandleTypeDef *handle,
@@ -170,7 +177,7 @@ L9963E_StatusTypeDef L9963E_setCommTimeout(L9963E_HandleTypeDef *handle,
 #endif
 
     if (preserve_reg_value && device != L9963E_DEVICE_BROADCAST) {
-        errorcode = L9963E_DRV_reg_read(&(handle->drv_handle), device, L9963E_fastch_baluv_ADDR, &fastch_baluv_reg, 10);
+        errorcode = L9963E_DRV_reg_read(&(handle->drv_handle), device, L9963E_fastch_baluv_ADDR, &fastch_baluv_reg, 10, 0);
 
         if (errorcode != L9963E_OK) {
             return errorcode;
@@ -181,7 +188,7 @@ L9963E_StatusTypeDef L9963E_setCommTimeout(L9963E_HandleTypeDef *handle,
 
     fastch_baluv_reg.fastch_baluv.CommTimeout = commTimeout;
 
-    return L9963E_DRV_reg_write(&(handle->drv_handle), device, L9963E_fastch_baluv_ADDR, &fastch_baluv_reg, 10);
+    return L9963E_DRV_reg_write(&(handle->drv_handle), device, L9963E_fastch_baluv_ADDR, &fastch_baluv_reg, 10, 0);
 }
 
 L9963E_StatusTypeDef L9963E_set_enabled_cells(L9963E_HandleTypeDef *handle, uint8_t device, uint16_t cells) {
@@ -244,7 +251,7 @@ L9963E_StatusTypeDef L9963E_set_enabled_cells(L9963E_HandleTypeDef *handle, uint
         }
     }
 
-    return L9963E_DRV_reg_write(&(handle->drv_handle), device, L9963E_VCELLS_EN_ADDR, &vcells_en_reg, 10);
+    return L9963E_DRV_reg_write(&(handle->drv_handle), device, L9963E_VCELLS_EN_ADDR, &vcells_en_reg, 10, 0);
 }
 
 L9963E_StatusTypeDef L9963E_start_conversion(L9963E_HandleTypeDef *handle,
@@ -262,12 +269,12 @@ L9963E_StatusTypeDef L9963E_start_conversion(L9963E_HandleTypeDef *handle,
     adcv_conv_reg.ADCV_CONV.ADC_FILTER_SOC = adc_filter_soc;
 
     adcv_conv_reg.ADCV_CONV.SOC            = 1;
-    adcv_conv_reg.ADCV_CONV.GPIO_CONV      = (options & L9963E_GPIO_CONV) != 0;
-    adcv_conv_reg.ADCV_CONV.GPIO_TERM_CONV = (options & L9963E_GPIO_TERM_CONV) != 0;
-    adcv_conv_reg.ADCV_CONV.BAL_TERM_CONV  = (options & L9963E_BAL_TERM_CONV) != 0;
-    adcv_conv_reg.ADCV_CONV.CELL_TERM_CONV = (options & L9963E_CELL_TERM_CONV) != 0;
+    adcv_conv_reg.ADCV_CONV.GPIO_CONV      = 0;	//Not using GPIO
+    adcv_conv_reg.ADCV_CONV.GPIO_TERM_CONV = 0; //Not using GPIO
+    adcv_conv_reg.ADCV_CONV.BAL_TERM_CONV  = 0; //Not balancing
+    adcv_conv_reg.ADCV_CONV.CELL_TERM_CONV = 0;
 
-    return L9963E_DRV_reg_write(&(handle->drv_handle), device, L9963E_ADCV_CONV_ADDR, &adcv_conv_reg, 10);
+    return L9963E_DRV_reg_write(&(handle->drv_handle), device, L9963E_ADCV_CONV_ADDR, &adcv_conv_reg, 10, 1);
 }
 
 L9963E_StatusTypeDef L9963E_poll_conversion(L9963E_HandleTypeDef *handle, uint8_t device, uint8_t *conversion_done) {
@@ -285,7 +292,7 @@ L9963E_StatusTypeDef L9963E_poll_conversion(L9963E_HandleTypeDef *handle, uint8_
         return L9963E_ERROR;
     }
 
-    errorcode = L9963E_DRV_reg_read(&(handle->drv_handle), device, L9963E_ADCV_CONV_ADDR, &adcv_conv_reg, 10);
+    errorcode = L9963E_DRV_reg_read(&(handle->drv_handle), device, L9963E_ADCV_CONV_ADDR, &adcv_conv_reg, 10, 1);
 
     if (errorcode != L9963E_OK)
         return errorcode;
@@ -363,7 +370,7 @@ L9963E_StatusTypeDef L9963E_read_cell_voltage(L9963E_HandleTypeDef *handle,
             break;
     }
 
-    errorcode = L9963E_DRV_reg_read(&(handle->drv_handle), device, addr, &vcell_meas_reg, 10);
+    errorcode = L9963E_DRV_reg_read(&(handle->drv_handle), device, addr, &vcell_meas_reg, 10, 0);
 
     if (errorcode != L9963E_OK)
         return errorcode;
@@ -394,12 +401,12 @@ L9963E_StatusTypeDef L9963E_read_batt_voltage(L9963E_HandleTypeDef *handle,
         return L9963E_ERROR;
     }
 
-    errorcode = L9963E_DRV_reg_read(&(handle->drv_handle), device, L9963E_VBATTDIV_ADDR, &vbattdiv_reg, 10);
+    errorcode = L9963E_DRV_reg_read(&(handle->drv_handle), device, L9963E_VBATTDIV_ADDR, &vbattdiv_reg, 10, 0);
 
     if (errorcode != L9963E_OK)
         return errorcode;
 
-    errorcode = L9963E_DRV_reg_read(&(handle->drv_handle), device, L9963E_VSUMBATT_ADDR, &vsumbatt_reg, 10);
+    errorcode = L9963E_DRV_reg_read(&(handle->drv_handle), device, L9963E_VSUMBATT_ADDR, &vsumbatt_reg, 10, 0);
 
     *vbatt_monitor = vbattdiv_reg.VBATTDIV.VBATT_DIV;
 
@@ -459,7 +466,7 @@ L9963E_StatusTypeDef L9963E_read_gpio_voltage(L9963E_HandleTypeDef *handle,
         return L9963E_ERROR;
     }
 
-    errorcode = L9963E_DRV_reg_read(&(handle->drv_handle), device, addr, &vgpio_meas_reg, 10);
+    errorcode = L9963E_DRV_reg_read(&(handle->drv_handle), device, addr, &vgpio_meas_reg, 10, 0);
 
     if (errorcode != L9963E_OK)
         return errorcode;
@@ -481,7 +488,7 @@ L9963E_StatusTypeDef L9963E_enable_vref(L9963E_HandleTypeDef *handle, uint8_t de
 #endif
 
     if (preserve_reg_value && device != L9963E_DEVICE_BROADCAST) {
-        errorcode = L9963E_DRV_reg_read(&(handle->drv_handle), device, L9963E_fastch_baluv_ADDR, &ncycle_prog2_reg, 10);
+        errorcode = L9963E_DRV_reg_read(&(handle->drv_handle), device, L9963E_fastch_baluv_ADDR, &ncycle_prog2_reg, 10, 0);
 
         if (errorcode != L9963E_OK) {
             return errorcode;
@@ -492,5 +499,5 @@ L9963E_StatusTypeDef L9963E_enable_vref(L9963E_HandleTypeDef *handle, uint8_t de
 
     ncycle_prog2_reg.generic                = L9963E_NCYCLE_PROG_2_DEFAULT;
     ncycle_prog2_reg.NCYCLE_PROG_2.VTREF_EN = 1;
-    return L9963E_DRV_reg_write(&(handle->drv_handle), device, L9963E_NCYCLE_PROG_2_ADDR, &ncycle_prog2_reg, 10);
+    return L9963E_DRV_reg_write(&(handle->drv_handle), device, L9963E_NCYCLE_PROG_2_ADDR, &ncycle_prog2_reg, 10, 0);
 }
