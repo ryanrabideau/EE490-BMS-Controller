@@ -311,3 +311,85 @@ uint8_t L9963E_utils_read_current_raw(int32_t *raw_current)
 
     return 1U;
 }
+
+uint8_t L9963E_utils_read_coulomb_counter(
+    L9963E_CoulombData_t *data)
+{
+    L9963E_BurstUnionTypeDef burstData = {0};
+    L9963E_StatusTypeDef status;
+
+    if (data == NULL)
+    {
+        return 0U;
+    }
+
+    /*
+     * The current-sense / Coulomb Counter chain must
+     * already be enabled before meaningful data exists.
+     */
+    L9963E_DRV_wakeup(&(h9l.drv_handle));
+
+    status = L9963E_DRV_burst_cmd(
+        &(h9l.drv_handle),
+        0x1,
+        _0x7BBurstCmd,
+        &burstData,
+        L9963E_BURST_0x7B_LEN,
+        20);
+
+    if (status != L9963E_OK)
+    {
+        return 0U;
+    }
+
+    /*
+     * Frame 1 contains the number of current samples
+     * accumulated during this interval.
+     */
+    data->sampleCount =
+        (uint16_t)burstData._0x7B.Frame1.CoulombCntTime;
+
+    data->overflow =
+        (uint8_t)burstData._0x7B.Frame1.CoCouOvF;
+
+    /*
+     * The Coulomb accumulator is one signed 32-bit
+     * two's-complement value split into two 16-bit
+     * registers.
+     */
+    uint32_t accumulatorRaw =
+        ((uint32_t)burstData._0x7B.Frame2.CoulombCounter_msb << 16) |
+        ((uint32_t)burstData._0x7B.Frame3.CoulombCounter_lsb);
+
+    data->accumulatorCode =
+        (int32_t)accumulatorRaw;
+
+    /*
+     * The two instantaneous-current fields are signed
+     * 18-bit two's-complement values.
+     */
+    uint32_t synchRaw =
+        (uint32_t)burstData._0x7B.Frame4.CUR_INST_synch;
+
+    if (synchRaw & 0x20000UL)
+    {
+        synchRaw |= 0xFFFC0000UL;
+    }
+
+    data->currentSynchRaw =
+        (int32_t)synchRaw;
+
+
+    uint32_t calibRaw =
+        (uint32_t)burstData._0x7B.Frame5.CUR_INST_calib;
+
+    if (calibRaw & 0x20000UL)
+    {
+        calibRaw |= 0xFFFC0000UL;
+    }
+
+    data->currentCalibRaw =
+        (int32_t)calibRaw;
+
+    return 1U;
+}

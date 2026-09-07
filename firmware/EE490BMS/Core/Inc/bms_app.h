@@ -70,6 +70,43 @@ typedef struct
 
 } BMS_CurrentData_t;
 
+/* ===================== Coulomb Counting Data ===================== */
+
+typedef struct
+{
+    /*
+     * Number of current ADC samples accumulated
+     * during the most recent Coulomb-counting interval.
+     */
+    uint16_t sampleCount;
+
+    /*
+     * Signed raw 32-bit accumulated current ADC sum
+     * returned by the L9963E.
+     */
+    int32_t accumulatorCode;
+
+    /*
+     * Charge transferred during the most recent
+     * Coulomb-counting interval.
+     *
+     * Positive/negative direction depends on the
+     * physical current-sense polarity.
+     */
+    float deltaChargeAh;
+
+    /*
+     * Running accumulated charge change since
+     * BMS_App_Init() was called.
+     */
+    float accumulatedChargeAh;
+
+    bool overflow;
+
+    bool valid;
+
+} BMS_CoulombData_t;
+
 /* ===================== Voltage Faults ===================== */
 
 typedef enum
@@ -104,6 +141,8 @@ bool BMS_App_UpdateTemperatureInputs(void);
 
 bool BMS_App_UpdateCurrent(void);
 
+bool BMS_App_UpdateCoulombCount(void);
+
 void BMS_App_CheckVoltageFaults(void);
 
 /* ===================== Data Access ===================== */
@@ -113,6 +152,8 @@ const BMS_VoltageData_t *BMS_App_GetVoltageData(void);
 const BMS_TemperatureData_t *BMS_App_GetTemperatureData(void);
 
 const BMS_CurrentData_t *BMS_App_GetCurrentData(void);
+
+const BMS_CoulombData_t *BMS_App_GetCoulombData(void);
 
 const BMS_FaultData_t *BMS_App_GetFaultData(void);
 

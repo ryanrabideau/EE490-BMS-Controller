@@ -54,4 +54,44 @@ uint8_t L9963E_utils_enable_current_sense(void);
  */
 uint8_t L9963E_utils_read_current_raw(int32_t *raw_current);
 
+/* ===================== Coulomb counting ===================== */
+
+typedef struct
+{
+    uint16_t sampleCount;
+
+    /*
+     * Signed sum of all current ADC samples collected
+     * since the previous 0x7B burst read.
+     */
+    int32_t accumulatorCode;
+
+    /*
+     * Instantaneous current samples included in the
+     * 0x7B response.
+     */
+    int32_t currentSynchRaw;
+    int32_t currentCalibRaw;
+
+    /*
+     * Set if the L9963E reports accumulator/sample
+     * counter overflow.
+     */
+    uint8_t overflow;
+
+} L9963E_CoulombData_t;
+
+
+/*
+ * Read the L9963E Coulomb Counter using burst command 0x7B.
+ *
+ * Important:
+ * The L9963E resets its internal accumulator and sample
+ * counter when this burst is read.
+ *
+ * Returns 1 on success and 0 on communication failure.
+ */
+uint8_t L9963E_utils_read_coulomb_counter(
+    L9963E_CoulombData_t *data);
+
 #endif /* L9963E_UTILS_H */

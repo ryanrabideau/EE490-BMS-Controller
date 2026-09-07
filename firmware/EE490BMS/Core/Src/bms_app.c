@@ -5,6 +5,12 @@
 #define BMS_GPIO_VOLTAGE_LSB_V 0.000089f
 
 /*
+ * L9963E current ADC conversion period in Normal state.
+ * Datasheet typical value: 328.25 microseconds.
+ */
+#define BMS_CURRENT_ADC_PERIOD_S 0.00032825f
+
+/*
  * Preliminary software protection thresholds.
  * Final values should be verified against the
  * selected battery cell datasheet.
@@ -15,6 +21,7 @@
 static BMS_VoltageData_t voltageData;
 static BMS_TemperatureData_t temperatureData;
 static BMS_CurrentData_t currentData;
+static BMS_CoulombData_t coulombData;
 static BMS_FaultData_t faultData;
 
 /*
@@ -22,7 +29,6 @@ static BMS_FaultData_t faultData;
  * chain has already been successfully enabled.
  */
 static bool currentSenseEnabled = false;
-
 
 void BMS_App_Init(void)
 {
@@ -34,13 +40,19 @@ void BMS_App_Init(void)
     currentData.senseVoltage = 0.0f;
     currentData.packCurrent = 0.0f;
 
+    coulombData.sampleCount = 0U;
+    coulombData.accumulatorCode = 0;
+    coulombData.deltaChargeAh = 0.0f;
+    coulombData.accumulatedChargeAh = 0.0f;
+    coulombData.overflow = false;
+    coulombData.valid = false;
+
     currentSenseEnabled = false;
 
     faultData.fault = BMS_VOLTAGE_DATA_INVALID;
     faultData.faultCellIndex = 0U;
     faultData.faultActive = false;
 }
-
 
 bool BMS_App_UpdateVoltages(void)
 {
@@ -121,7 +133,6 @@ bool BMS_App_UpdateVoltages(void)
     return true;
 }
 
-
 bool BMS_App_UpdateTemperatureInputs(void)
 {
     uint8_t gpioCount = 0U;
@@ -159,7 +170,6 @@ bool BMS_App_UpdateTemperatureInputs(void)
 
     return true;
 }
-
 
 bool BMS_App_UpdateCurrent(void)
 {
@@ -232,6 +242,103 @@ bool BMS_App_UpdateCurrent(void)
     return true;
 }
 
+bool BMS_App_UpdateCoulombCount(void)
+{
+    L9963E_CoulombData_t rawCoulombData;
+
+    /*
+     * The current conversion chain must be enabled
+     * before the Coulomb Counter can accumulate data.
+     */
+    if (!currentSenseEnabled)
+    {
+        if (!L9963E_utils_enable_current_sense())
+        {
+            coulombData.valid = false;
+
+            return false;
+        }
+
+        currentSenseEnabled = true;
+    }
+
+    /*
+     * Read the L9963E Coulomb Counter using burst
+     * command 0x7B.
+     *
+     * A successful read also resets the L9963E's
+     * internal accumulator and sample counter for
+     * the next interval.
+     */
+    if (!L9963E_utils_read_coulomb_counter(
+            &rawCoulombData))
+    {
+        coulombData.valid = false;
+
+        return false;
+    }
+
+    coulombData.sampleCount =
+        rawCoulombData.sampleCount;
+
+    coulombData.accumulatorCode =
+        rawCoulombData.accumulatorCode;
+
+    coulombData.overflow =
+        (rawCoulombData.overflow != 0U);
+
+    /*
+     * If the hardware reports an accumulator or
+     * sample-counter overflow, the charge result
+     * cannot be considered reliable.
+     */
+    if (coulombData.overflow)
+    {
+        coulombData.valid = false;
+
+        return false;
+    }
+
+    /*
+     * The L9963E Coulomb accumulator contains the
+     * signed sum of the current ADC samples.
+     *
+     * Convert accumulated ADC counts into charge:
+     *
+     * delta Q =
+     * accumulator
+     * x ADC voltage resolution
+     * x current ADC sample period
+     * / shunt resistance
+     *
+     * This first gives ampere-seconds (coulombs).
+     */
+    float deltaChargeAs =
+        ((float)coulombData.accumulatorCode) *
+        L9963_CURRENT_LSB_V *
+        BMS_CURRENT_ADC_PERIOD_S /
+        BMS_CURRENT_SHUNT_OHMS;
+
+    /*
+     * 1 ampere-hour = 3600 ampere-seconds.
+     */
+    coulombData.deltaChargeAh =
+        deltaChargeAs / 3600.0f;
+
+    /*
+     * Keep a running charge-change total.
+     *
+     * This is NOT yet an absolute battery SoC.
+     * Absolute SoC requires a known starting SoC
+     * and nominal battery-pack capacity.
+     */
+    coulombData.accumulatedChargeAh +=
+        coulombData.deltaChargeAh;
+
+    coulombData.valid = true;
+
+    return true;
+}
 
 void BMS_App_CheckVoltageFaults(void)
 {
@@ -287,24 +394,25 @@ void BMS_App_CheckVoltageFaults(void)
     }
 }
 
-
 const BMS_VoltageData_t *BMS_App_GetVoltageData(void)
 {
     return &voltageData;
 }
-
 
 const BMS_TemperatureData_t *BMS_App_GetTemperatureData(void)
 {
     return &temperatureData;
 }
 
-
 const BMS_CurrentData_t *BMS_App_GetCurrentData(void)
 {
     return &currentData;
 }
 
+const BMS_CoulombData_t *BMS_App_GetCoulombData(void)
+{
+    return &coulombData;
+}
 
 const BMS_FaultData_t *BMS_App_GetFaultData(void)
 {
