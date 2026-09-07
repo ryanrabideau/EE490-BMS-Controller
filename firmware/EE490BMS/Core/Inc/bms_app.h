@@ -6,8 +6,8 @@
 
 /* ===================== Configuration ===================== */
 
-#define BMS_CELL_COUNT           7U
-#define BMS_TEMP_CHANNEL_COUNT   7U
+#define BMS_CELL_COUNT            7U
+#define BMS_TEMP_CHANNEL_COUNT    7U
 
 /*
  * Battery pack configuration.
@@ -18,14 +18,14 @@
  * Pack configuration: 2P7S
  * Pack capacity = 2 x 2.5 Ah = 5.0 Ah.
  */
-#define BMS_PACK_CAPACITY_AH     5.0f
+#define BMS_PACK_CAPACITY_AH      5.0f
 
 /*
  * Temporary shunt resistance value.
  * This must be confirmed once the team's final shunt resistor
  * and maximum pack current are selected.
  */
-#define BMS_CURRENT_SHUNT_OHMS   0.0001f
+#define BMS_CURRENT_SHUNT_OHMS    0.0001f
 
 /* ===================== Voltage Data ===================== */
 
@@ -113,7 +113,6 @@ typedef struct
     float accumulatedChargeAh;
 
     bool overflow;
-
     bool valid;
 
 } BMS_CoulombData_t;
@@ -153,11 +152,8 @@ typedef struct
 typedef enum
 {
     BMS_VOLTAGE_OK = 0,
-
     BMS_CELL_UNDERVOLTAGE,
-
     BMS_CELL_OVERVOLTAGE,
-
     BMS_VOLTAGE_DATA_INVALID
 
 } BMS_VoltageFault_t;
@@ -185,9 +181,18 @@ bool BMS_App_UpdateCurrent(void);
 bool BMS_App_UpdateCoulombCount(void);
 
 bool BMS_App_SetSocReference(float initialSocPercent);
+
 bool BMS_App_UpdateSoc(void);
 
 void BMS_App_CheckVoltageFaults(void);
+
+/*
+ * Convert the latest BMS measurements into a human-readable
+ * telemetry string for UART transmission.
+ */
+int BMS_App_FormatTelemetry(
+    char *buffer,
+    unsigned int bufferSize);
 
 /* ===================== Data Access ===================== */
 

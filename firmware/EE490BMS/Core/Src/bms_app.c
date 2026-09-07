@@ -1,6 +1,9 @@
 #include "bms_app.h"
+
 #include "L9963E_utils.h"
+
 #include <stddef.h>
+#include <stdio.h>
 
 #define BMS_GPIO_VOLTAGE_LSB_V 0.000089f
 
@@ -21,7 +24,7 @@
  *
  * Verify this on hardware before relying on SoC.
  */
-#define BMS_SOC_CURRENT_DIRECTION  1.0f
+#define BMS_SOC_CURRENT_DIRECTION 1.0f
 
 /*
  * Preliminary software protection thresholds.
@@ -47,9 +50,10 @@ static bool currentSenseInitialized = false;
 void BMS_App_Init(void)
 {
     voltageData.valid = false;
-    temperatureData.valid = false;
-    currentData.valid = false;
 
+    temperatureData.valid = false;
+
+    currentData.valid = false;
     currentData.rawCode = 0;
     currentData.senseVoltage = 0.0f;
     currentData.packCurrent = 0.0f;
@@ -234,15 +238,13 @@ bool BMS_App_UpdateCurrent(void)
     int32_t rawCurrent = 0;
 
     /*
-     * Enable the L9963E current conversion chain
-     * the first time current measurement is requested.
-     *
-     * If communication fails, leave the flag false
-     * so the application will try again next time.
+     * Initialize the current-sense path the first
+     * time current measurement is requested.
      */
     if (!BMS_App_InitializeCurrentSense())
     {
         currentData.valid = false;
+
         return false;
     }
 
@@ -305,6 +307,7 @@ bool BMS_App_UpdateCoulombCount(void)
     if (!BMS_App_InitializeCurrentSense())
     {
         coulombData.valid = false;
+
         return false;
     }
 
@@ -373,10 +376,6 @@ bool BMS_App_UpdateCoulombCount(void)
 
     /*
      * Keep a running charge-change total.
-     *
-     * This is NOT yet an absolute battery SoC.
-     * Absolute SoC requires a known starting SoC
-     * and nominal battery-pack capacity.
      */
     coulombData.accumulatedChargeAh +=
         coulombData.deltaChargeAh;
@@ -393,6 +392,7 @@ bool BMS_App_SetSocReference(float initialSocPercent)
     {
         socData.referenceSet = false;
         socData.valid = false;
+
         return false;
     }
 
@@ -405,8 +405,12 @@ bool BMS_App_SetSocReference(float initialSocPercent)
      */
     coulombData.accumulatedChargeAh = 0.0f;
 
-    socData.referenceSocPercent = initialSocPercent;
-    socData.socPercent = initialSocPercent;
+    socData.referenceSocPercent =
+        initialSocPercent;
+
+    socData.socPercent =
+        initialSocPercent;
+
     socData.referenceSet = true;
     socData.valid = true;
 
@@ -418,12 +422,14 @@ bool BMS_App_UpdateSoc(void)
     if (!socData.referenceSet)
     {
         socData.valid = false;
+
         return false;
     }
 
     if (!coulombData.valid)
     {
         socData.valid = false;
+
         return false;
     }
 
@@ -512,6 +518,117 @@ void BMS_App_CheckVoltageFaults(void)
         }
     }
 }
+
+/*
+ * Convert the latest stored BMS measurements into one
+ * human-readable line suitable for UART transmission.
+ *
+ * Integer formatting is used instead of printf "%f" so
+ * the project does not require newlib-nano float printf
+ * support.
+ */
+int BMS_App_FormatTelemetry(
+    char *buffer,
+    unsigned int bufferSize)
+{
+    if ((buffer == NULL) ||
+        (bufferSize == 0U))
+    {
+        return -1;
+    }
+
+    uint32_t packMv =
+        (uint32_t)((voltageData.packVoltage * 1000.0f) + 0.5f);
+
+    uint32_t cellMv[BMS_CELL_COUNT];
+
+    for (uint8_t i = 0U;
+         i < BMS_CELL_COUNT;
+         i++)
+    {
+        cellMv[i] =
+            (uint32_t)((voltageData.cellVoltage[i] * 1000.0f) +
+                       0.5f);
+    }
+
+    int32_t currentMa =
+        (int32_t)(currentData.packCurrent * 1000.0f);
+
+    char currentSign = '+';
+
+    uint32_t currentMagnitudeMa;
+
+    if (currentMa < 0)
+    {
+        currentSign = '-';
+
+        currentMagnitudeMa =
+            (uint32_t)(-currentMa);
+    }
+    else
+    {
+        currentMagnitudeMa =
+            (uint32_t)currentMa;
+    }
+
+    uint32_t socTenths =
+        (uint32_t)((socData.socPercent * 10.0f) + 0.5f);
+
+    return snprintf(
+        buffer,
+        bufferSize,
+
+        "PACK: %lu.%03lu V | "
+        "CELLS: "
+        "%lu.%03lu "
+        "%lu.%03lu "
+        "%lu.%03lu "
+        "%lu.%03lu "
+        "%lu.%03lu "
+        "%lu.%03lu "
+        "%lu.%03lu V | "
+        "CURRENT: %c%lu.%03lu A | "
+        "SOC: %lu.%01lu %% | "
+        "VALID[V:%u I:%u SOC:%u]\r\n",
+
+        (unsigned long)(packMv / 1000U),
+        (unsigned long)(packMv % 1000U),
+
+        (unsigned long)(cellMv[0] / 1000U),
+        (unsigned long)(cellMv[0] % 1000U),
+
+        (unsigned long)(cellMv[1] / 1000U),
+        (unsigned long)(cellMv[1] % 1000U),
+
+        (unsigned long)(cellMv[2] / 1000U),
+        (unsigned long)(cellMv[2] % 1000U),
+
+        (unsigned long)(cellMv[3] / 1000U),
+        (unsigned long)(cellMv[3] % 1000U),
+
+        (unsigned long)(cellMv[4] / 1000U),
+        (unsigned long)(cellMv[4] % 1000U),
+
+        (unsigned long)(cellMv[5] / 1000U),
+        (unsigned long)(cellMv[5] % 1000U),
+
+        (unsigned long)(cellMv[6] / 1000U),
+        (unsigned long)(cellMv[6] % 1000U),
+
+        currentSign,
+
+        (unsigned long)(currentMagnitudeMa / 1000U),
+        (unsigned long)(currentMagnitudeMa % 1000U),
+
+        (unsigned long)(socTenths / 10U),
+        (unsigned long)(socTenths % 10U),
+
+        voltageData.valid ? 1U : 0U,
+        currentData.valid ? 1U : 0U,
+        socData.valid ? 1U : 0U);
+}
+
+/* ===================== Data Access ===================== */
 
 const BMS_VoltageData_t *BMS_App_GetVoltageData(void)
 {
