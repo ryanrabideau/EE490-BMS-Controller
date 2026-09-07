@@ -4,8 +4,19 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define BMS_CELL_COUNT          7U
-#define BMS_TEMP_CHANNEL_COUNT  7U
+/* ===================== Configuration ===================== */
+
+#define BMS_CELL_COUNT           7U
+#define BMS_TEMP_CHANNEL_COUNT   7U
+
+/*
+ * Temporary shunt resistance value.
+ * This must be confirmed once the team's final shunt resistor
+ * and maximum pack current are selected.
+ */
+#define BMS_CURRENT_SHUNT_OHMS   0.0001f
+
+/* ===================== Voltage Data ===================== */
 
 typedef struct
 {
@@ -24,6 +35,8 @@ typedef struct
 
 } BMS_VoltageData_t;
 
+/* ===================== Temperature Data ===================== */
+
 typedef struct
 {
     uint16_t raw[BMS_TEMP_CHANNEL_COUNT];
@@ -34,11 +47,39 @@ typedef struct
 
 } BMS_TemperatureData_t;
 
+/* ===================== Current Data ===================== */
+
+typedef struct
+{
+    /*
+     * Signed 18-bit current ADC value from the L9963E.
+     */
+    int32_t rawCode;
+
+    /*
+     * Differential voltage measured across the shunt resistor.
+     */
+    float senseVoltage;
+
+    /*
+     * Calculated battery pack current in amperes.
+     */
+    float packCurrent;
+
+    bool valid;
+
+} BMS_CurrentData_t;
+
+/* ===================== Voltage Faults ===================== */
+
 typedef enum
 {
     BMS_VOLTAGE_OK = 0,
+
     BMS_CELL_UNDERVOLTAGE,
+
     BMS_CELL_OVERVOLTAGE,
+
     BMS_VOLTAGE_DATA_INVALID
 
 } BMS_VoltageFault_t;
@@ -53,17 +94,25 @@ typedef struct
 
 } BMS_FaultData_t;
 
+/* ===================== Application Functions ===================== */
+
 void BMS_App_Init(void);
 
 bool BMS_App_UpdateVoltages(void);
 
 bool BMS_App_UpdateTemperatureInputs(void);
 
+bool BMS_App_UpdateCurrent(void);
+
 void BMS_App_CheckVoltageFaults(void);
+
+/* ===================== Data Access ===================== */
 
 const BMS_VoltageData_t *BMS_App_GetVoltageData(void);
 
 const BMS_TemperatureData_t *BMS_App_GetTemperatureData(void);
+
+const BMS_CurrentData_t *BMS_App_GetCurrentData(void);
 
 const BMS_FaultData_t *BMS_App_GetFaultData(void);
 

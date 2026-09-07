@@ -14,17 +14,33 @@
 
 static BMS_VoltageData_t voltageData;
 static BMS_TemperatureData_t temperatureData;
+static BMS_CurrentData_t currentData;
 static BMS_FaultData_t faultData;
+
+/*
+ * Tracks whether the L9963E current conversion
+ * chain has already been successfully enabled.
+ */
+static bool currentSenseEnabled = false;
+
 
 void BMS_App_Init(void)
 {
     voltageData.valid = false;
     temperatureData.valid = false;
+    currentData.valid = false;
+
+    currentData.rawCode = 0;
+    currentData.senseVoltage = 0.0f;
+    currentData.packCurrent = 0.0f;
+
+    currentSenseEnabled = false;
 
     faultData.fault = BMS_VOLTAGE_DATA_INVALID;
     faultData.faultCellIndex = 0U;
     faultData.faultActive = false;
 }
+
 
 bool BMS_App_UpdateVoltages(void)
 {
@@ -105,6 +121,7 @@ bool BMS_App_UpdateVoltages(void)
     return true;
 }
 
+
 bool BMS_App_UpdateTemperatureInputs(void)
 {
     uint8_t gpioCount = 0U;
@@ -142,6 +159,79 @@ bool BMS_App_UpdateTemperatureInputs(void)
 
     return true;
 }
+
+
+bool BMS_App_UpdateCurrent(void)
+{
+    int32_t rawCurrent = 0;
+
+    /*
+     * Enable the L9963E current conversion chain
+     * the first time current measurement is requested.
+     *
+     * If communication fails, leave the flag false
+     * so the application will try again next time.
+     */
+    if (!currentSenseEnabled)
+    {
+        if (!L9963E_utils_enable_current_sense())
+        {
+            currentData.valid = false;
+
+            return false;
+        }
+
+        currentSenseEnabled = true;
+    }
+
+    /*
+     * Read the continuously updated signed 18-bit
+     * current ADC measurement.
+     */
+    if (!L9963E_utils_read_current_raw(&rawCurrent))
+    {
+        currentData.valid = false;
+
+        return false;
+    }
+
+    currentData.rawCode = rawCurrent;
+
+    /*
+     * Convert ADC counts into the differential voltage
+     * across the external current-sense shunt.
+     *
+     * L9963E current ADC resolution:
+     * 1.33 microvolts per count.
+     */
+    currentData.senseVoltage =
+        ((float)rawCurrent) *
+        L9963_CURRENT_LSB_V;
+
+    /*
+     * Ohm's law:
+     *
+     * I = Vshunt / Rshunt
+     *
+     * BMS_CURRENT_SHUNT_OHMS is currently a temporary
+     * configuration value and must be updated when the
+     * team's final shunt resistor is selected.
+     */
+    currentData.packCurrent =
+        currentData.senseVoltage /
+        BMS_CURRENT_SHUNT_OHMS;
+
+    /*
+     * Current polarity depends on the physical orientation
+     * of ISENSEP, ISENSEM, and the shunt resistor.
+     * Do not assume positive means charge or discharge until
+     * the team's schematic/hardware orientation is confirmed.
+     */
+    currentData.valid = true;
+
+    return true;
+}
+
 
 void BMS_App_CheckVoltageFaults(void)
 {
@@ -197,15 +287,24 @@ void BMS_App_CheckVoltageFaults(void)
     }
 }
 
+
 const BMS_VoltageData_t *BMS_App_GetVoltageData(void)
 {
     return &voltageData;
 }
 
+
 const BMS_TemperatureData_t *BMS_App_GetTemperatureData(void)
 {
     return &temperatureData;
 }
+
+
+const BMS_CurrentData_t *BMS_App_GetCurrentData(void)
+{
+    return &currentData;
+}
+
 
 const BMS_FaultData_t *BMS_App_GetFaultData(void)
 {

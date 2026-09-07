@@ -215,3 +215,99 @@ void L9963E_utils_get_batt_mv(float *v_tot, float *v_sum) {
   *v_tot = vtot * 1.33f;
   *v_sum = vsumbatt * 89e-3f;
 }
+
+uint8_t L9963E_utils_enable_current_sense(void)
+{
+    L9963E_RegisterUnionTypeDef csaConfig;
+    L9963E_StatusTypeDef status;
+
+    /*
+     * Read the existing CSA configuration first so we do
+     * not overwrite any unrelated masks or thresholds.
+     */
+    L9963E_DRV_wakeup(&(h9l.drv_handle));
+
+    status = L9963E_DRV_reg_read(
+        &(h9l.drv_handle),
+        0x1,
+        L9963E_CSA_GPIO_MSK_ADDR,
+        &csaConfig,
+        10,
+        0);
+
+    if (status != L9963E_OK)
+    {
+        return 0U;
+    }
+
+    /*
+     * CoulombCounter_en is bit 12 of CSA_GPIO_MSK.
+     * Set only that bit and preserve everything else.
+     */
+    csaConfig.generic |= (1UL << 12);
+
+    L9963E_DRV_wakeup(&(h9l.drv_handle));
+
+    status = L9963E_DRV_reg_write(
+        &(h9l.drv_handle),
+        0x1,
+        L9963E_CSA_GPIO_MSK_ADDR,
+        &csaConfig,
+        10,
+        0);
+
+    if (status != L9963E_OK)
+    {
+        return 0U;
+    }
+
+    return 1U;
+}
+
+
+uint8_t L9963E_utils_read_current_raw(int32_t *raw_current)
+{
+    L9963E_RegisterUnionTypeDef currentReg;
+    L9963E_StatusTypeDef status;
+
+    if (raw_current == NULL)
+    {
+        return 0U;
+    }
+
+    L9963E_DRV_wakeup(&(h9l.drv_handle));
+
+    status = L9963E_DRV_reg_read(
+        &(h9l.drv_handle),
+        0x1,
+        L9963E_Ibattery_calib_ADDR,
+        &currentReg,
+        10,
+        0);
+
+    if (status != L9963E_OK)
+    {
+        return 0U;
+    }
+
+    /*
+     * Ibattery_calib contains an 18-bit two's-complement
+     * current value in bits 17:0.
+     */
+    uint32_t raw18 = currentReg.generic & 0x3FFFFUL;
+
+    /*
+     * Sign-extend the 18-bit value to a normal signed
+     * 32-bit integer.
+     *
+     * Bit 17 is the sign bit.
+     */
+    if (raw18 & 0x20000UL)
+    {
+        raw18 |= 0xFFFC0000UL;
+    }
+
+    *raw_current = (int32_t)raw18;
+
+    return 1U;
+}
