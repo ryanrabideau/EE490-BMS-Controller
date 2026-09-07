@@ -184,6 +184,17 @@ bool BMS_App_SetSocReference(float initialSocPercent);
 
 bool BMS_App_UpdateSoc(void);
 
+/*
+ * Perform one complete BMS measurement/update cycle.
+ *
+ * Voltage, current, Coulomb count, and SoC are each
+ * updated independently so a failure in one path does
+ * not prevent the others from being attempted.
+ *
+ * Returns true only if all four updates succeed.
+ */
+bool BMS_App_UpdateAll(void);
+
 void BMS_App_CheckVoltageFaults(void);
 
 /*

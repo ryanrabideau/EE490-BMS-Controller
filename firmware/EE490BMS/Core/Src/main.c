@@ -116,51 +116,104 @@ int main(void)
   char telemetryBuffer[256];
   int telemetryLength;
 
-  HAL_GPIO_WritePin(GPIOA, LD2_Pin, GPIO_PIN_SET);
-  HAL_Delay(100);
-  HAL_GPIO_WritePin(GPIOA, LD2_Pin, GPIO_PIN_RESET);
+  uint8_t afeInitialized = 0U;
 
   /*
-   * Initialize the higher-level BMS application data.
+   * Brief startup LED indication.
+   */
+  HAL_GPIO_WritePin(
+      LD2_GPIO_Port,
+      LD2_Pin,
+      GPIO_PIN_SET);
+
+  HAL_Delay(100);
+
+  HAL_GPIO_WritePin(
+      LD2_GPIO_Port,
+      LD2_Pin,
+      GPIO_PIN_RESET);
+
+
+  /*
+   * Initialize the higher-level BMS application state.
+   *
+   * This clears validity flags and prepares the voltage,
+   * current, Coulomb-counting, SoC, and fault structures.
    */
   BMS_App_Init();
 
   /*
-   * Temporary starting SoC reference for UART demonstration.
+   * Initialize and configure the L9963E AFE.
    *
-   * This value is only a software reference point for testing
-   * the telemetry path. It is not a measured battery SoC.
+   * The utility layer now returns instead of remaining
+   * inside the previous debug loop, and reports whether
+   * initialization completed successfully.
    */
-  BMS_App_SetSocReference(80.0f);
+  afeInitialized =
+      L9963E_utils_init();
 
   /*
-   * Temporary UART telemetry demonstration.
+   * Temporary starting SoC reference.
    *
-   * We intentionally do not call L9963E_utils_init() here because
-   * the current low-level debug implementation can block before
-   * returning. This allows the UART path to be tested independently.
+   * Only establish the reference after the AFE has
+   * initialized successfully. The 80 percent value is
+   * still only a software test reference and is NOT a
+   * measured battery state of charge.
+   */
+  if (afeInitialized)
+  {
+      BMS_App_SetSocReference(80.0f);
+  }
+
+  /*
+   * Standalone BMS + UART integration loop.
    *
-   * Until the L9963E measurement path is integrated, voltage and
-   * current data will remain invalid and will appear as zero.
+   * This remains a pre-FreeRTOS demonstration for now.
+   * Once the complete hardware path has been validated,
+   * this periodic work can be moved into an RTOS task.
    */
   while (1)
   {
+      /*
+       * Only attempt AFE measurements if device
+       * initialization succeeded.
+       *
+       * The individual application update functions
+       * maintain their own validity flags if a later
+       * measurement or communication operation fails.
+       */
+      if (afeInitialized)
+      {
+          BMS_App_UpdateAll();
+      }
+
+
+      /*
+       * Convert the latest BMS state into one
+       * human-readable UART telemetry line.
+       */
       telemetryLength =
           BMS_App_FormatTelemetry(
               telemetryBuffer,
               sizeof(telemetryBuffer));
 
+
       if (telemetryLength > 0)
       {
           /*
-           * snprintf() returns the number of characters that would
-           * have been written. Only transmit the actual contents
-           * stored in the buffer.
+           * snprintf() returns the number of characters
+           * that would have been written.
+           *
+           * Limit transmission to the bytes actually
+           * stored in telemetryBuffer.
            */
           uint16_t transmitLength =
-              (telemetryLength < (int)sizeof(telemetryBuffer)) ?
+              (telemetryLength <
+               (int)sizeof(telemetryBuffer)) ?
               (uint16_t)telemetryLength :
-              (uint16_t)(sizeof(telemetryBuffer) - 1U);
+              (uint16_t)
+              (sizeof(telemetryBuffer) - 1U);
+
 
           HAL_UART_Transmit(
               &huart2,
@@ -169,6 +222,13 @@ int main(void)
               HAL_MAX_DELAY);
       }
 
+
+      /*
+       * One-second update interval.
+       *
+       * This also keeps Coulomb-counter servicing within
+       * the intended approximately one-second interval.
+       */
       HAL_Delay(1000);
   }
 

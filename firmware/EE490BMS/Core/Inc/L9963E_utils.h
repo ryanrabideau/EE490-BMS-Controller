@@ -3,6 +3,9 @@
 
 #include <inttypes.h>
 
+
+/* ===================== General configuration ===================== */
+
 #define L9963_VRES 0.000089f
 
 #define CELLS_N 7
@@ -11,9 +14,20 @@
 /*
  * Keep the current hardware-test cell configuration unchanged
  * until the team's physical cell setup is confirmed.
+ *
+ * NOTE:
+ * The higher-level application expects seven cells:
+ * CELL1, CELL2, CELL3, CELL4, CELL12, CELL13, CELL14.
+ *
+ * Michael's present bench configuration only enables:
+ * CELL1, CELL2, CELL13, CELL14.
+ *
+ * This must be confirmed on the physical 7S pack before final
+ * hardware integration.
  */
 #define ENABLED_CELLS \
-    (L9963E_CELL1 | L9963E_CELL2 | L9963E_CELL13 | L9963E_CELL14)
+    (L9963E_CELL1 | L9963E_CELL2 | \
+     L9963E_CELL13 | L9963E_CELL14)
 
 /*
  * L9963E current ADC resolution:
@@ -21,9 +35,36 @@
  */
 #define L9963_CURRENT_LSB_V 0.00000133f
 
-void L9963E_utils_init(void);
+/* ===================== Initialization ===================== */
 
-void L9963E_utils_read_cells(uint8_t read_gpio);
+/*
+ * Initialize and configure the L9963E measurement device.
+ *
+ * Returns:
+ *   1 = initialization completed successfully
+ *   0 = initialization or communication failure
+ */
+uint8_t L9963E_utils_init(void);
+
+/* ===================== Voltage / GPIO acquisition ===================== */
+
+/*
+ * Start an ADC conversion and acquire all configured cell
+ * measurements.
+ *
+ * If read_gpio is nonzero, GPIO3 through GPIO9 are also read.
+ *
+ * Returns:
+ *   1 = complete measurement set acquired successfully
+ *   0 = communication failure, conversion timeout, or data timeout
+ *
+ * On failure, the previously stored global measurement set is
+ * preserved so partially updated data is never published.
+ */
+uint8_t L9963E_utils_read_cells(uint8_t read_gpio);
+
+
+/* ===================== Measurement access ===================== */
 
 uint16_t const *L9963E_utils_get_gpios(uint8_t *len);
 
@@ -31,7 +72,10 @@ uint16_t const *L9963E_utils_get_cells(uint8_t *len);
 
 float L9963E_utils_get_cell_mv(uint8_t index);
 
-void L9963E_utils_get_batt_mv(float *v_tot, float *v_sum);
+void L9963E_utils_get_batt_mv(
+    float *v_tot,
+    float *v_sum);
+
 
 /* ===================== Current sensing ===================== */
 
@@ -43,6 +87,7 @@ void L9963E_utils_get_batt_mv(float *v_tot, float *v_sum);
  */
 uint8_t L9963E_utils_enable_current_sense(void);
 
+
 /*
  * Read the continuously updated instantaneous current
  * measurement from Ibattery_calib.
@@ -52,7 +97,9 @@ uint8_t L9963E_utils_enable_current_sense(void);
  *
  * Returns 1 on success and 0 on communication failure.
  */
-uint8_t L9963E_utils_read_current_raw(int32_t *raw_current);
+uint8_t L9963E_utils_read_current_raw(
+    int32_t *raw_current);
+
 
 /* ===================== Coulomb counting ===================== */
 
@@ -93,5 +140,6 @@ typedef struct
  */
 uint8_t L9963E_utils_read_coulomb_counter(
     L9963E_CoulombData_t *data);
+
 
 #endif /* L9963E_UTILS_H */

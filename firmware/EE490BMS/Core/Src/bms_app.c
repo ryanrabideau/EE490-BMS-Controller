@@ -84,8 +84,19 @@ bool BMS_App_UpdateVoltages(void)
     /*
      * Perform a normal cell-voltage conversion.
      * Passing 0 means GPIO conversion is not requested.
+     *
+     * If the L9963E communication fails, conversion times
+     * out, or any requested measurement is unavailable,
+     * do not process the previously stored measurement set
+     * as though it were new data.
      */
-    L9963E_utils_read_cells(0);
+    if (!L9963E_utils_read_cells(0))
+    {
+        voltageData.valid = false;
+        BMS_App_CheckVoltageFaults();
+
+        return false;
+    }
 
     const uint16_t *rawCells =
         L9963E_utils_get_cells(&cellCount);
@@ -94,7 +105,6 @@ bool BMS_App_UpdateVoltages(void)
         (cellCount != BMS_CELL_COUNT))
     {
         voltageData.valid = false;
-
         BMS_App_CheckVoltageFaults();
 
         return false;
@@ -163,8 +173,17 @@ bool BMS_App_UpdateTemperatureInputs(void)
     /*
      * Passing 1 requests GPIO conversion in addition
      * to the normal cell-voltage conversion.
+     *
+     * Do not process previously stored GPIO values if
+     * the latest L9963E acquisition did not complete
+     * successfully.
      */
-    L9963E_utils_read_cells(1);
+    if (!L9963E_utils_read_cells(1))
+    {
+        temperatureData.valid = false;
+
+        return false;
+    }
 
     const uint16_t *rawGpios =
         L9963E_utils_get_gpios(&gpioCount);
@@ -463,6 +482,41 @@ bool BMS_App_UpdateSoc(void)
     socData.valid = true;
 
     return true;
+}
+
+bool BMS_App_UpdateAll(void)
+{
+    /*
+     * Run each operation independently.
+     *
+     * Do not combine these calls directly with &&
+     * because short-circuit evaluation would prevent
+     * later measurements from running after an earlier
+     * failure.
+     */
+    bool voltageOk =
+        BMS_App_UpdateVoltages();
+
+    bool currentOk =
+        BMS_App_UpdateCurrent();
+
+    bool coulombOk =
+        BMS_App_UpdateCoulombCount();
+
+    bool socOk =
+        BMS_App_UpdateSoc();
+
+    /*
+     * The overall cycle is considered successful only
+     * if every requested subsystem updated successfully.
+     *
+     * Each subsystem still maintains its own validity
+     * flag, so UART telemetry can show partial failures.
+     */
+    return voltageOk &&
+           currentOk &&
+           coulombOk &&
+           socOk;
 }
 
 void BMS_App_CheckVoltageFaults(void)
