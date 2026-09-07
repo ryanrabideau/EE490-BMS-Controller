@@ -10,6 +10,17 @@
 #define BMS_TEMP_CHANNEL_COUNT   7U
 
 /*
+ * Battery pack configuration.
+ *
+ * Samsung INR18650-25R:
+ * 2.5 Ah nominal capacity per cell.
+ *
+ * Pack configuration: 2P7S
+ * Pack capacity = 2 x 2.5 Ah = 5.0 Ah.
+ */
+#define BMS_PACK_CAPACITY_AH     5.0f
+
+/*
  * Temporary shunt resistance value.
  * This must be confirmed once the team's final shunt resistor
  * and maximum pack current are selected.
@@ -107,6 +118,36 @@ typedef struct
 
 } BMS_CoulombData_t;
 
+/* ===================== State of Charge Data ===================== */
+
+typedef struct
+{
+    /*
+     * Current estimated state of charge.
+     * Valid range: 0.0 to 100.0 percent.
+     */
+    float socPercent;
+
+    /*
+     * SoC value supplied when the estimate
+     * was initialized.
+     */
+    float referenceSocPercent;
+
+    /*
+     * True after a valid starting SoC
+     * reference has been supplied.
+     */
+    bool referenceSet;
+
+    /*
+     * True when the current SoC estimate
+     * can be considered valid.
+     */
+    bool valid;
+
+} BMS_SocData_t;
+
 /* ===================== Voltage Faults ===================== */
 
 typedef enum
@@ -143,6 +184,9 @@ bool BMS_App_UpdateCurrent(void);
 
 bool BMS_App_UpdateCoulombCount(void);
 
+bool BMS_App_SetSocReference(float initialSocPercent);
+bool BMS_App_UpdateSoc(void);
+
 void BMS_App_CheckVoltageFaults(void);
 
 /* ===================== Data Access ===================== */
@@ -154,6 +198,8 @@ const BMS_TemperatureData_t *BMS_App_GetTemperatureData(void);
 const BMS_CurrentData_t *BMS_App_GetCurrentData(void);
 
 const BMS_CoulombData_t *BMS_App_GetCoulombData(void);
+
+const BMS_SocData_t *BMS_App_GetSocData(void);
 
 const BMS_FaultData_t *BMS_App_GetFaultData(void);
 

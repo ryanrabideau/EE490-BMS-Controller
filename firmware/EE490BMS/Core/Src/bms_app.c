@@ -11,6 +11,19 @@
 #define BMS_CURRENT_ADC_PERIOD_S 0.00032825f
 
 /*
+ * Current polarity configuration.
+ *
+ * Set to +1.0f if positive accumulated charge
+ * means the battery is charging.
+ *
+ * Set to -1.0f if positive accumulated charge
+ * means the battery is discharging.
+ *
+ * Verify this on hardware before relying on SoC.
+ */
+#define BMS_SOC_CURRENT_DIRECTION  1.0f
+
+/*
  * Preliminary software protection thresholds.
  * Final values should be verified against the
  * selected battery cell datasheet.
@@ -22,13 +35,14 @@ static BMS_VoltageData_t voltageData;
 static BMS_TemperatureData_t temperatureData;
 static BMS_CurrentData_t currentData;
 static BMS_CoulombData_t coulombData;
+static BMS_SocData_t socData;
 static BMS_FaultData_t faultData;
 
 /*
  * Tracks whether the L9963E current conversion
  * chain has already been successfully enabled.
  */
-static bool currentSenseEnabled = false;
+static bool currentSenseInitialized = false;
 
 void BMS_App_Init(void)
 {
@@ -47,7 +61,12 @@ void BMS_App_Init(void)
     coulombData.overflow = false;
     coulombData.valid = false;
 
-    currentSenseEnabled = false;
+    socData.socPercent = 0.0f;
+    socData.referenceSocPercent = 0.0f;
+    socData.referenceSet = false;
+    socData.valid = false;
+
+    currentSenseInitialized = false;
 
     faultData.fault = BMS_VOLTAGE_DATA_INVALID;
     faultData.faultCellIndex = 0U;
@@ -171,6 +190,45 @@ bool BMS_App_UpdateTemperatureInputs(void)
     return true;
 }
 
+/*
+ * Initialize the L9963E current-sense / Coulomb-counting
+ * path once at application startup.
+ *
+ * The initial 0x7B read clears any stale Coulomb
+ * accumulator and sample-count data. That data is
+ * intentionally discarded.
+ *
+ * After the counter is cleared, current sensing and
+ * Coulomb counting are enabled.
+ */
+static bool BMS_App_InitializeCurrentSense(void)
+{
+    L9963E_CoulombData_t discardData;
+
+    if (currentSenseInitialized)
+    {
+        return true;
+    }
+
+    /*
+     * Clear any old Coulomb-counter contents before
+     * enabling a new measurement interval.
+     */
+    if (!L9963E_utils_read_coulomb_counter(&discardData))
+    {
+        return false;
+    }
+
+    if (!L9963E_utils_enable_current_sense())
+    {
+        return false;
+    }
+
+    currentSenseInitialized = true;
+
+    return true;
+}
+
 bool BMS_App_UpdateCurrent(void)
 {
     int32_t rawCurrent = 0;
@@ -182,16 +240,10 @@ bool BMS_App_UpdateCurrent(void)
      * If communication fails, leave the flag false
      * so the application will try again next time.
      */
-    if (!currentSenseEnabled)
+    if (!BMS_App_InitializeCurrentSense())
     {
-        if (!L9963E_utils_enable_current_sense())
-        {
-            currentData.valid = false;
-
-            return false;
-        }
-
-        currentSenseEnabled = true;
+        currentData.valid = false;
+        return false;
     }
 
     /*
@@ -250,16 +302,10 @@ bool BMS_App_UpdateCoulombCount(void)
      * The current conversion chain must be enabled
      * before the Coulomb Counter can accumulate data.
      */
-    if (!currentSenseEnabled)
+    if (!BMS_App_InitializeCurrentSense())
     {
-        if (!L9963E_utils_enable_current_sense())
-        {
-            coulombData.valid = false;
-
-            return false;
-        }
-
-        currentSenseEnabled = true;
+        coulombData.valid = false;
+        return false;
     }
 
     /*
@@ -340,6 +386,79 @@ bool BMS_App_UpdateCoulombCount(void)
     return true;
 }
 
+bool BMS_App_SetSocReference(float initialSocPercent)
+{
+    if ((initialSocPercent < 0.0f) ||
+        (initialSocPercent > 100.0f))
+    {
+        socData.referenceSet = false;
+        socData.valid = false;
+        return false;
+    }
+
+    /*
+     * Start a new SoC estimate from the supplied
+     * reference point.
+     *
+     * Reset the accumulated charge change so the
+     * reference corresponds to this moment.
+     */
+    coulombData.accumulatedChargeAh = 0.0f;
+
+    socData.referenceSocPercent = initialSocPercent;
+    socData.socPercent = initialSocPercent;
+    socData.referenceSet = true;
+    socData.valid = true;
+
+    return true;
+}
+
+bool BMS_App_UpdateSoc(void)
+{
+    if (!socData.referenceSet)
+    {
+        socData.valid = false;
+        return false;
+    }
+
+    if (!coulombData.valid)
+    {
+        socData.valid = false;
+        return false;
+    }
+
+    /*
+     * Convert accumulated charge change into
+     * a percentage of total pack capacity.
+     */
+    float socChangePercent =
+        (coulombData.accumulatedChargeAh /
+         BMS_PACK_CAPACITY_AH) *
+        100.0f *
+        BMS_SOC_CURRENT_DIRECTION;
+
+    socData.socPercent =
+        socData.referenceSocPercent +
+        socChangePercent;
+
+    /*
+     * Clamp the estimate to the physical
+     * 0-100 percent range.
+     */
+    if (socData.socPercent > 100.0f)
+    {
+        socData.socPercent = 100.0f;
+    }
+    else if (socData.socPercent < 0.0f)
+    {
+        socData.socPercent = 0.0f;
+    }
+
+    socData.valid = true;
+
+    return true;
+}
+
 void BMS_App_CheckVoltageFaults(void)
 {
     faultData.fault = BMS_VOLTAGE_OK;
@@ -412,6 +531,11 @@ const BMS_CurrentData_t *BMS_App_GetCurrentData(void)
 const BMS_CoulombData_t *BMS_App_GetCoulombData(void)
 {
     return &coulombData;
+}
+
+const BMS_SocData_t *BMS_App_GetSocData(void)
+{
+    return &socData;
 }
 
 const BMS_FaultData_t *BMS_App_GetFaultData(void)
