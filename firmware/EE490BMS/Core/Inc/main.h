@@ -36,7 +36,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
+extern SPI_HandleTypeDef hspi2;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -49,8 +49,6 @@ extern "C" {
 
 /* USER CODE END EM */
 
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
-
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
@@ -61,16 +59,28 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define B1_Pin GPIO_PIN_13
 #define B1_GPIO_Port GPIOC
+#define L9963T_SDO_SPI_MISO_Pin GPIO_PIN_2
+#define L9963T_SDO_SPI_MISO_GPIO_Port GPIOC
+#define L9963T_SDI_SPI_MOSI_Pin GPIO_PIN_3
+#define L9963T_SDI_SPI_MOSI_GPIO_Port GPIOC
 #define USART_TX_Pin GPIO_PIN_2
 #define USART_TX_GPIO_Port GPIOA
 #define USART_RX_Pin GPIO_PIN_3
 #define USART_RX_GPIO_Port GPIOA
 #define LD2_Pin GPIO_PIN_5
 #define LD2_GPIO_Port GPIOA
-#define SW1_Pin GPIO_PIN_9
-#define SW1_GPIO_Port GPIOA
-#define SW2_Pin GPIO_PIN_10
-#define SW2_GPIO_Port GPIOA
+#define L9963T_NCS_GPIO_OUT_Pin GPIO_PIN_4
+#define L9963T_NCS_GPIO_OUT_GPIO_Port GPIOC
+#define L9963T_DIS_GPIO_INOUT_Pin GPIO_PIN_5
+#define L9963T_DIS_GPIO_INOUT_GPIO_Port GPIOC
+#define L9963T_ISOFREQ_GPIO_OUT_Pin GPIO_PIN_0
+#define L9963T_ISOFREQ_GPIO_OUT_GPIO_Port GPIOB
+#define L9963T_BNE_GPIO_IN_Pin GPIO_PIN_1
+#define L9963T_BNE_GPIO_IN_GPIO_Port GPIOB
+#define L9963T_TXEN_GPIO_OUT_Pin GPIO_PIN_2
+#define L9963T_TXEN_GPIO_OUT_GPIO_Port GPIOB
+#define L9963T_SCK_SPI_SCK_Pin GPIO_PIN_10
+#define L9963T_SCK_SPI_SCK_GPIO_Port GPIOB
 #define TMS_Pin GPIO_PIN_13
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
