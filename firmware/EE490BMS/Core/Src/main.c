@@ -16,7 +16,6 @@
   ******************************************************************************
   */
 /* USER CODE END Header */
-
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
@@ -51,13 +50,11 @@ UART_HandleTypeDef huart2;
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
-
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
-
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -85,6 +82,7 @@ void StartDefaultTask(void *argument);
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -110,93 +108,35 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM1_Init();
   MX_SPI2_Init();
-
   /* USER CODE BEGIN 2 */
 
   char telemetryBuffer[256];
   int telemetryLength;
 
-  uint8_t afeInitialized = 0U;
-
-  /*
-   * Brief startup LED indication.
-   */
-  HAL_GPIO_WritePin(
-      LD2_GPIO_Port,
-      LD2_Pin,
-      GPIO_PIN_SET);
-
+  // Flash LED on board for reference and startup
+  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
   HAL_Delay(100);
+  HAL_GPIO_WritePin(LD2_GPIO_Port,  LD2_Pin, GPIO_PIN_RESET);
 
-  HAL_GPIO_WritePin(
-      LD2_GPIO_Port,
-      LD2_Pin,
-      GPIO_PIN_RESET);
-
-
-  /*
-   * Initialize the higher-level BMS application state.
-   *
-   * This clears validity flags and prepares the voltage,
-   * current, Coulomb-counting, SoC, and fault structures.
-   */
+  //Initialize global variable states
   BMS_App_Init();
 
-  /*
-   * Initialize and configure the L9963E AFE.
-   *
-   * The utility layer now returns instead of remaining
-   * inside the previous debug loop, and reports whether
-   * initialization completed successfully.
-   */
-  afeInitialized =
-      L9963E_utils_init();
+  //Initialize and address the L9963E AFE.
+  L9963E_utils_init();
 
-  /*
-   * Temporary starting SoC reference.
-   *
-   * Only establish the reference after the AFE has
-   * initialized successfully. The 80 percent value is
-   * still only a software test reference and is NOT a
-   * measured battery state of charge.
-   */
-  if (afeInitialized)
-  {
-      BMS_App_SetSocReference(80.0f);
-  }
+  //Known SOC starting value
+  BMS_App_SetSocReference(80.0f);
 
-  /*
-   * Standalone BMS + UART integration loop.
-   *
-   * This remains a pre-FreeRTOS demonstration for now.
-   * Once the complete hardware path has been validated,
-   * this periodic work can be moved into an RTOS task.
-   */
+
+
+  // Super loop
   while (1)
   {
-      /*
-       * Only attempt AFE measurements if device
-       * initialization succeeded.
-       *
-       * The individual application update functions
-       * maintain their own validity flags if a later
-       * measurement or communication operation fails.
-       */
-      if (afeInitialized)
-      {
-          BMS_App_UpdateAll();
-      }
+	  //Get all Voltage, Current, SoC data from AFE
+      BMS_App_UpdateAll();
 
-
-      /*
-       * Convert the latest BMS state into one
-       * human-readable UART telemetry line.
-       */
-      telemetryLength =
-          BMS_App_FormatTelemetry(
-              telemetryBuffer,
-              sizeof(telemetryBuffer));
-
+      //Convert the latest BMS state into one human-readable UART message
+      telemetryLength = BMS_App_FormatTelemetry(telemetryBuffer, sizeof(telemetryBuffer));
 
       if (telemetryLength > 0)
       {
@@ -207,28 +147,14 @@ int main(void)
            * Limit transmission to the bytes actually
            * stored in telemetryBuffer.
            */
-          uint16_t transmitLength =
-              (telemetryLength <
-               (int)sizeof(telemetryBuffer)) ?
+          uint16_t transmitLength = (telemetryLength < (int)sizeof(telemetryBuffer)) ?
               (uint16_t)telemetryLength :
-              (uint16_t)
-              (sizeof(telemetryBuffer) - 1U);
+              (uint16_t) (sizeof(telemetryBuffer) - 1U);
 
-
-          HAL_UART_Transmit(
-              &huart2,
-              (uint8_t *)telemetryBuffer,
-              transmitLength,
-              HAL_MAX_DELAY);
+          HAL_UART_Transmit(&huart2, (uint8_t *)telemetryBuffer, transmitLength, HAL_MAX_DELAY);
       }
 
-
-      /*
-       * One-second update interval.
-       *
-       * This also keeps Coulomb-counter servicing within
-       * the intended approximately one-second interval.
-       */
+      //Keep Coulomb-counter servicing within the intended approximately one-second interval.
       HAL_Delay(1000);
   }
 
@@ -254,13 +180,8 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-
   /* creation of defaultTask */
-  defaultTaskHandle =
-      osThreadNew(
-          StartDefaultTask,
-          NULL,
-          &defaultTask_attributes);
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -276,7 +197,6 @@ int main(void)
   /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
-
   /* USER CODE BEGIN WHILE */
   while (1)
   {
@@ -299,33 +219,20 @@ void SystemClock_Config(void)
   /** Configure the main internal regulator output voltage
   */
   __HAL_RCC_PWR_CLK_ENABLE();
-
-  __HAL_PWR_VOLTAGESCALING_CONFIG(
-      PWR_REGULATOR_VOLTAGE_SCALE1);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType =
-      RCC_OSCILLATORTYPE_HSI;
-
-  RCC_OscInitStruct.HSIState =
-      RCC_HSI_ON;
-
-  RCC_OscInitStruct.HSICalibrationValue =
-      RCC_HSICALIBRATION_DEFAULT;
-
-  RCC_OscInitStruct.PLL.PLLState =
-      RCC_PLL_ON;
-
-  RCC_OscInitStruct.PLL.PLLSource =
-      RCC_PLLSOURCE_HSI;
-
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = 16;
   RCC_OscInitStruct.PLL.PLLN = 336;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
   RCC_OscInitStruct.PLL.PLLQ = 4;
-
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -333,27 +240,14 @@ void SystemClock_Config(void)
 
   /** Initializes the CPU, AHB and APB buses clocks
   */
-  RCC_ClkInitStruct.ClockType =
-      RCC_CLOCKTYPE_HCLK |
-      RCC_CLOCKTYPE_SYSCLK |
-      RCC_CLOCKTYPE_PCLK1 |
-      RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  RCC_ClkInitStruct.SYSCLKSource =
-      RCC_SYSCLKSOURCE_PLLCLK;
-
-  RCC_ClkInitStruct.AHBCLKDivider =
-      RCC_SYSCLK_DIV1;
-
-  RCC_ClkInitStruct.APB1CLKDivider =
-      RCC_HCLK_DIV2;
-
-  RCC_ClkInitStruct.APB2CLKDivider =
-      RCC_HCLK_DIV1;
-
-  if (HAL_RCC_ClockConfig(
-          &RCC_ClkInitStruct,
-          FLASH_LATENCY_2) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -366,6 +260,7 @@ void SystemClock_Config(void)
   */
 static void MX_SPI2_Init(void)
 {
+
   /* USER CODE BEGIN SPI2_Init 0 */
 
   /* USER CODE END SPI2_Init 0 */
@@ -373,51 +268,27 @@ static void MX_SPI2_Init(void)
   /* USER CODE BEGIN SPI2_Init 1 */
 
   /* USER CODE END SPI2_Init 1 */
-
-  /* SPI2 parameter configuration */
-  hspi2.Instance =
-      SPI2;
-
-  hspi2.Init.Mode =
-      SPI_MODE_MASTER;
-
-  hspi2.Init.Direction =
-      SPI_DIRECTION_2LINES;
-
-  hspi2.Init.DataSize =
-      SPI_DATASIZE_8BIT;
-
-  hspi2.Init.CLKPolarity =
-      SPI_POLARITY_LOW;
-
-  hspi2.Init.CLKPhase =
-      SPI_PHASE_2EDGE;
-
-  hspi2.Init.NSS =
-      SPI_NSS_SOFT;
-
-  hspi2.Init.BaudRatePrescaler =
-      SPI_BAUDRATEPRESCALER_256;
-
-  hspi2.Init.FirstBit =
-      SPI_FIRSTBIT_MSB;
-
-  hspi2.Init.TIMode =
-      SPI_TIMODE_DISABLE;
-
-  hspi2.Init.CRCCalculation =
-      SPI_CRCCALCULATION_DISABLE;
-
+  /* SPI2 parameter configuration*/
+  hspi2.Instance = SPI2;
+  hspi2.Init.Mode = SPI_MODE_MASTER;
+  hspi2.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi2.Init.CLKPhase = SPI_PHASE_2EDGE;
+  hspi2.Init.NSS = SPI_NSS_SOFT;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+  hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi2.Init.CRCPolynomial = 10;
-
   if (HAL_SPI_Init(&hspi2) != HAL_OK)
   {
     Error_Handler();
   }
-
   /* USER CODE BEGIN SPI2_Init 2 */
 
   /* USER CODE END SPI2_Init 2 */
+
 }
 
 /**
@@ -427,6 +298,7 @@ static void MX_SPI2_Init(void)
   */
 static void MX_TIM1_Init(void)
 {
+
   /* USER CODE BEGIN TIM1_Init 0 */
 
   /* USER CODE END TIM1_Init 0 */
@@ -437,59 +309,32 @@ static void MX_TIM1_Init(void)
   /* USER CODE BEGIN TIM1_Init 1 */
 
   /* USER CODE END TIM1_Init 1 */
-
-  htim1.Instance =
-      TIM1;
-
-  htim1.Init.Prescaler =
-      84 - 1;
-
-  htim1.Init.CounterMode =
-      TIM_COUNTERMODE_UP;
-
-  htim1.Init.Period =
-      1000 - 1;
-
-  htim1.Init.ClockDivision =
-      TIM_CLOCKDIVISION_DIV1;
-
-  htim1.Init.RepetitionCounter =
-      0;
-
-  htim1.Init.AutoReloadPreload =
-      TIM_AUTORELOAD_PRELOAD_DISABLE;
-
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 84-1;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 1000-1;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
   {
     Error_Handler();
   }
-
-  sClockSourceConfig.ClockSource =
-      TIM_CLOCKSOURCE_INTERNAL;
-
-  if (HAL_TIM_ConfigClockSource(
-          &htim1,
-          &sClockSourceConfig) != HAL_OK)
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
   {
     Error_Handler();
   }
-
-  sMasterConfig.MasterOutputTrigger =
-      TIM_TRGO_RESET;
-
-  sMasterConfig.MasterSlaveMode =
-      TIM_MASTERSLAVEMODE_DISABLE;
-
-  if (HAL_TIMEx_MasterConfigSynchronization(
-          &htim1,
-          &sMasterConfig) != HAL_OK)
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
   {
     Error_Handler();
   }
-
   /* USER CODE BEGIN TIM1_Init 2 */
 
   /* USER CODE END TIM1_Init 2 */
+
 }
 
 /**
@@ -499,6 +344,7 @@ static void MX_TIM1_Init(void)
   */
 static void MX_USART2_UART_Init(void)
 {
+
   /* USER CODE BEGIN USART2_Init 0 */
 
   /* USER CODE END USART2_Init 0 */
@@ -506,39 +352,22 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 1 */
 
   /* USER CODE END USART2_Init 1 */
-
-  huart2.Instance =
-      USART2;
-
-  huart2.Init.BaudRate =
-      115200;
-
-  huart2.Init.WordLength =
-      UART_WORDLENGTH_8B;
-
-  huart2.Init.StopBits =
-      UART_STOPBITS_1;
-
-  huart2.Init.Parity =
-      UART_PARITY_NONE;
-
-  huart2.Init.Mode =
-      UART_MODE_TX_RX;
-
-  huart2.Init.HwFlowCtl =
-      UART_HWCONTROL_NONE;
-
-  huart2.Init.OverSampling =
-      UART_OVERSAMPLING_16;
-
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
   if (HAL_UART_Init(&huart2) != HAL_OK)
   {
     Error_Handler();
   }
-
   /* USER CODE BEGIN USART2_Init 2 */
 
   /* USER CODE END USART2_Init 2 */
+
 }
 
 /**
@@ -549,7 +378,6 @@ static void MX_USART2_UART_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-
   /* USER CODE BEGIN MX_GPIO_Init_1 */
 
   /* USER CODE END MX_GPIO_Init_1 */
@@ -560,110 +388,47 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  /* Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(
-      LD2_GPIO_Port,
-      LD2_Pin,
-      GPIO_PIN_RESET);
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 
-  /* Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(
-      GPIOC,
-      L9963T_NCS_GPIO_OUT_Pin |
-      L9963T_DIS_GPIO_INOUT_Pin,
-      GPIO_PIN_RESET);
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, L9963T_NCS_GPIO_OUT_Pin|L9963T_DIS_GPIO_INOUT_Pin, GPIO_PIN_RESET);
 
-  /* Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(
-      GPIOB,
-      L9963T_ISOFREQ_GPIO_OUT_Pin |
-      L9963T_TXEN_GPIO_OUT_Pin,
-      GPIO_PIN_RESET);
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, L9963T_ISOFREQ_GPIO_OUT_Pin|L9963T_TXEN_GPIO_OUT_Pin, GPIO_PIN_RESET);
 
-  /* Configure GPIO pin : B1_Pin */
-  GPIO_InitStruct.Pin =
-      B1_Pin;
+  /*Configure GPIO pin : B1_Pin */
+  GPIO_InitStruct.Pin = B1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Mode =
-      GPIO_MODE_IT_FALLING;
+  /*Configure GPIO pin : LD2_Pin */
+  GPIO_InitStruct.Pin = LD2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pull =
-      GPIO_NOPULL;
+  /*Configure GPIO pins : L9963T_NCS_GPIO_OUT_Pin L9963T_DIS_GPIO_INOUT_Pin */
+  GPIO_InitStruct.Pin = L9963T_NCS_GPIO_OUT_Pin|L9963T_DIS_GPIO_INOUT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  HAL_GPIO_Init(
-      B1_GPIO_Port,
-      &GPIO_InitStruct);
+  /*Configure GPIO pins : L9963T_ISOFREQ_GPIO_OUT_Pin L9963T_TXEN_GPIO_OUT_Pin */
+  GPIO_InitStruct.Pin = L9963T_ISOFREQ_GPIO_OUT_Pin|L9963T_TXEN_GPIO_OUT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /* Configure GPIO pin : LD2_Pin */
-  GPIO_InitStruct.Pin =
-      LD2_Pin;
-
-  GPIO_InitStruct.Mode =
-      GPIO_MODE_OUTPUT_PP;
-
-  GPIO_InitStruct.Pull =
-      GPIO_NOPULL;
-
-  GPIO_InitStruct.Speed =
-      GPIO_SPEED_FREQ_LOW;
-
-  HAL_GPIO_Init(
-      LD2_GPIO_Port,
-      &GPIO_InitStruct);
-
-  /* Configure GPIO pins :
-     L9963T_NCS_GPIO_OUT_Pin
-     L9963T_DIS_GPIO_INOUT_Pin */
-  GPIO_InitStruct.Pin =
-      L9963T_NCS_GPIO_OUT_Pin |
-      L9963T_DIS_GPIO_INOUT_Pin;
-
-  GPIO_InitStruct.Mode =
-      GPIO_MODE_OUTPUT_PP;
-
-  GPIO_InitStruct.Pull =
-      GPIO_NOPULL;
-
-  GPIO_InitStruct.Speed =
-      GPIO_SPEED_FREQ_LOW;
-
-  HAL_GPIO_Init(
-      GPIOC,
-      &GPIO_InitStruct);
-
-  /* Configure GPIO pins :
-     L9963T_ISOFREQ_GPIO_OUT_Pin
-     L9963T_TXEN_GPIO_OUT_Pin */
-  GPIO_InitStruct.Pin =
-      L9963T_ISOFREQ_GPIO_OUT_Pin |
-      L9963T_TXEN_GPIO_OUT_Pin;
-
-  GPIO_InitStruct.Mode =
-      GPIO_MODE_OUTPUT_PP;
-
-  GPIO_InitStruct.Pull =
-      GPIO_NOPULL;
-
-  GPIO_InitStruct.Speed =
-      GPIO_SPEED_FREQ_LOW;
-
-  HAL_GPIO_Init(
-      GPIOB,
-      &GPIO_InitStruct);
-
-  /* Configure GPIO pin : L9963T_BNE_GPIO_IN_Pin */
-  GPIO_InitStruct.Pin =
-      L9963T_BNE_GPIO_IN_Pin;
-
-  GPIO_InitStruct.Mode =
-      GPIO_MODE_INPUT;
-
-  GPIO_InitStruct.Pull =
-      GPIO_NOPULL;
-
-  HAL_GPIO_Init(
-      L9963T_BNE_GPIO_IN_GPIO_Port,
-      &GPIO_InitStruct);
+  /*Configure GPIO pin : L9963T_BNE_GPIO_IN_Pin */
+  GPIO_InitStruct.Pin = L9963T_BNE_GPIO_IN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(L9963T_BNE_GPIO_IN_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -681,7 +446,6 @@ static void MX_GPIO_Init(void)
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
-
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
@@ -697,7 +461,7 @@ void StartDefaultTask(void *argument)
 
 /**
   * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called when TIM5 interrupt took place, inside
+  * @note   This function is called  when TIM5 interrupt took place, inside
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
   * a global variable "uwTick" used as application time base.
   * @param  htim : TIM handle
@@ -708,12 +472,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-
   if (htim->Instance == TIM5)
   {
     HAL_IncTick();
   }
-
   /* USER CODE BEGIN Callback 1 */
 
   /* USER CODE END Callback 1 */
@@ -737,14 +499,12 @@ void Error_Handler(void)
 
   /* USER CODE END Error_Handler_Debug */
 }
-
 #ifdef USE_FULL_ASSERT
-
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
   * @param  file: pointer to the source file name
-  * @param  line: source line number
+  * @param  line: assert_param error line source number
   * @retval None
   */
 void assert_failed(uint8_t *file, uint32_t line)
@@ -756,5 +516,4 @@ void assert_failed(uint8_t *file, uint32_t line)
 
   /* USER CODE END 6 */
 }
-
 #endif /* USE_FULL_ASSERT */

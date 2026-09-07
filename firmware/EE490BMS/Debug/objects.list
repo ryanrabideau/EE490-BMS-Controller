@@ -1,6 +1,7 @@
 "./Core/Src/L9963E.o"
 "./Core/Src/L9963E_drv.o"
 "./Core/Src/L9963E_utils.o"
+"./Core/Src/bms_app.o"
 "./Core/Src/freertos.o"
 "./Core/Src/main.o"
 "./Core/Src/stm32_if.o"

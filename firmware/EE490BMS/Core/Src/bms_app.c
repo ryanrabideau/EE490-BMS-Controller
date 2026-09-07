@@ -41,37 +41,33 @@ static BMS_CoulombData_t coulombData;
 static BMS_SocData_t socData;
 static BMS_FaultData_t faultData;
 
-/*
- * Tracks whether the L9963E current conversion
- * chain has already been successfully enabled.
- */
+//Tracks whether the L9963E current conversion chain has already been successfully enabled.
 static bool currentSenseInitialized = false;
 
+
+/* Initialize the higher-level BMS application state.
+ *
+ * This clears validity flags and prepares the voltage,
+ * current, Coulomb-counting, SoC, and fault structures. */
 void BMS_App_Init(void)
 {
     voltageData.valid = false;
-
     temperatureData.valid = false;
-
     currentData.valid = false;
     currentData.rawCode = 0;
     currentData.senseVoltage = 0.0f;
     currentData.packCurrent = 0.0f;
-
     coulombData.sampleCount = 0U;
     coulombData.accumulatorCode = 0;
     coulombData.deltaChargeAh = 0.0f;
     coulombData.accumulatedChargeAh = 0.0f;
     coulombData.overflow = false;
     coulombData.valid = false;
-
     socData.socPercent = 0.0f;
     socData.referenceSocPercent = 0.0f;
     socData.referenceSet = false;
     socData.valid = false;
-
     currentSenseInitialized = false;
-
     faultData.fault = BMS_VOLTAGE_DATA_INVALID;
     faultData.faultCellIndex = 0U;
     faultData.faultActive = false;
@@ -98,11 +94,9 @@ bool BMS_App_UpdateVoltages(void)
         return false;
     }
 
-    const uint16_t *rawCells =
-        L9963E_utils_get_cells(&cellCount);
+    const uint16_t *rawCells = L9963E_utils_get_cells(&cellCount);
 
-    if ((rawCells == NULL) ||
-        (cellCount != BMS_CELL_COUNT))
+    if ((rawCells == NULL) || (cellCount != BMS_CELL_COUNT))
     {
         voltageData.valid = false;
         BMS_App_CheckVoltageFaults();
@@ -112,53 +106,34 @@ bool BMS_App_UpdateVoltages(void)
 
     voltageData.packVoltage = 0.0f;
 
-    for (uint8_t i = 0U;
-         i < BMS_CELL_COUNT;
-         i++)
+    for (uint8_t i = 0U; i < BMS_CELL_COUNT; i++)
     {
-        voltageData.cellVoltage[i] =
-            L9963E_utils_get_cell_mv(i) / 1000.0f;
-
-        voltageData.packVoltage +=
-            voltageData.cellVoltage[i];
+        voltageData.cellVoltage[i] = L9963E_utils_get_cell_mv(i) / 1000.0f;
+        voltageData.packVoltage += voltageData.cellVoltage[i];
     }
 
-    voltageData.minCellVoltage =
-        voltageData.cellVoltage[0];
-
-    voltageData.maxCellVoltage =
-        voltageData.cellVoltage[0];
+    voltageData.minCellVoltage = voltageData.cellVoltage[0];
+    voltageData.maxCellVoltage = voltageData.cellVoltage[0];
 
     voltageData.minCellIndex = 0U;
     voltageData.maxCellIndex = 0U;
 
-    for (uint8_t i = 1U;
-         i < BMS_CELL_COUNT;
-         i++)
+    for (uint8_t i = 1U; i < BMS_CELL_COUNT; i++)
     {
-        if (voltageData.cellVoltage[i] <
-            voltageData.minCellVoltage)
+        if (voltageData.cellVoltage[i] < voltageData.minCellVoltage)
         {
-            voltageData.minCellVoltage =
-                voltageData.cellVoltage[i];
-
+            voltageData.minCellVoltage = voltageData.cellVoltage[i];
             voltageData.minCellIndex = i;
         }
 
-        if (voltageData.cellVoltage[i] >
-            voltageData.maxCellVoltage)
+        if (voltageData.cellVoltage[i] > voltageData.maxCellVoltage)
         {
-            voltageData.maxCellVoltage =
-                voltageData.cellVoltage[i];
-
+            voltageData.maxCellVoltage = voltageData.cellVoltage[i];
             voltageData.maxCellIndex = i;
         }
     }
 
-    voltageData.deltaVoltage =
-        voltageData.maxCellVoltage -
-        voltageData.minCellVoltage;
-
+    voltageData.deltaVoltage = voltageData.maxCellVoltage - voltageData.minCellVoltage;
     voltageData.valid = true;
 
     BMS_App_CheckVoltageFaults();
@@ -185,27 +160,20 @@ bool BMS_App_UpdateTemperatureInputs(void)
         return false;
     }
 
-    const uint16_t *rawGpios =
-        L9963E_utils_get_gpios(&gpioCount);
+    const uint16_t *rawGpios = L9963E_utils_get_gpios(&gpioCount);
 
-    if ((rawGpios == NULL) ||
-        (gpioCount != BMS_TEMP_CHANNEL_COUNT))
+    if ((rawGpios == NULL) || (gpioCount != BMS_TEMP_CHANNEL_COUNT))
     {
         temperatureData.valid = false;
 
         return false;
     }
 
-    for (uint8_t i = 0U;
-         i < BMS_TEMP_CHANNEL_COUNT;
-         i++)
+    for (uint8_t i = 0U; i < BMS_TEMP_CHANNEL_COUNT; i++)
     {
-        temperatureData.raw[i] =
-            rawGpios[i];
+        temperatureData.raw[i] = rawGpios[i];
 
-        temperatureData.gpioVoltage[i] =
-            ((float)rawGpios[i]) *
-            BMS_GPIO_VOLTAGE_LSB_V;
+        temperatureData.gpioVoltage[i] = ((float)rawGpios[i]) * BMS_GPIO_VOLTAGE_LSB_V;
     }
 
     temperatureData.valid = true;
@@ -228,24 +196,11 @@ static bool BMS_App_InitializeCurrentSense(void)
 {
     L9963E_CoulombData_t discardData;
 
-    if (currentSenseInitialized)
-    {
-        return true;
-    }
+    if (currentSenseInitialized) return true;
 
-    /*
-     * Clear any old Coulomb-counter contents before
-     * enabling a new measurement interval.
-     */
-    if (!L9963E_utils_read_coulomb_counter(&discardData))
-    {
-        return false;
-    }
-
-    if (!L9963E_utils_enable_current_sense())
-    {
-        return false;
-    }
+    //Clear any old Coulomb-counter contents before enabling a new measurement interval.
+    if (!L9963E_utils_read_coulomb_counter(&discardData)) return false;
+    if (!L9963E_utils_enable_current_sense()) return false;
 
     currentSenseInitialized = true;
 
@@ -256,14 +211,10 @@ bool BMS_App_UpdateCurrent(void)
 {
     int32_t rawCurrent = 0;
 
-    /*
-     * Initialize the current-sense path the first
-     * time current measurement is requested.
-     */
+    //Initialize the current-sense path the first time current measurement is requested.
     if (!BMS_App_InitializeCurrentSense())
     {
         currentData.valid = false;
-
         return false;
     }
 
@@ -274,7 +225,6 @@ bool BMS_App_UpdateCurrent(void)
     if (!L9963E_utils_read_current_raw(&rawCurrent))
     {
         currentData.valid = false;
-
         return false;
     }
 
@@ -287,9 +237,7 @@ bool BMS_App_UpdateCurrent(void)
      * L9963E current ADC resolution:
      * 1.33 microvolts per count.
      */
-    currentData.senseVoltage =
-        ((float)rawCurrent) *
-        L9963_CURRENT_LSB_V;
+    currentData.senseVoltage = ((float)rawCurrent) * L9963_CURRENT_LSB_V;
 
     /*
      * Ohm's law:
@@ -300,9 +248,7 @@ bool BMS_App_UpdateCurrent(void)
      * configuration value and must be updated when the
      * team's final shunt resistor is selected.
      */
-    currentData.packCurrent =
-        currentData.senseVoltage /
-        BMS_CURRENT_SHUNT_OHMS;
+    currentData.packCurrent = currentData.senseVoltage / BMS_CURRENT_SHUNT_OHMS;
 
     /*
      * Current polarity depends on the physical orientation
@@ -326,7 +272,6 @@ bool BMS_App_UpdateCoulombCount(void)
     if (!BMS_App_InitializeCurrentSense())
     {
         coulombData.valid = false;
-
         return false;
     }
 
@@ -338,22 +283,15 @@ bool BMS_App_UpdateCoulombCount(void)
      * internal accumulator and sample counter for
      * the next interval.
      */
-    if (!L9963E_utils_read_coulomb_counter(
-            &rawCoulombData))
+    if (!L9963E_utils_read_coulomb_counter(&rawCoulombData))
     {
         coulombData.valid = false;
-
         return false;
     }
 
-    coulombData.sampleCount =
-        rawCoulombData.sampleCount;
-
-    coulombData.accumulatorCode =
-        rawCoulombData.accumulatorCode;
-
-    coulombData.overflow =
-        (rawCoulombData.overflow != 0U);
+    coulombData.sampleCount = rawCoulombData.sampleCount;
+    coulombData.accumulatorCode = rawCoulombData.accumulatorCode;
+    coulombData.overflow = (rawCoulombData.overflow != 0U);
 
     /*
      * If the hardware reports an accumulator or
@@ -363,7 +301,6 @@ bool BMS_App_UpdateCoulombCount(void)
     if (coulombData.overflow)
     {
         coulombData.valid = false;
-
         return false;
     }
 
@@ -381,33 +318,35 @@ bool BMS_App_UpdateCoulombCount(void)
      *
      * This first gives ampere-seconds (coulombs).
      */
-    float deltaChargeAs =
-        ((float)coulombData.accumulatorCode) *
-        L9963_CURRENT_LSB_V *
-        BMS_CURRENT_ADC_PERIOD_S /
-        BMS_CURRENT_SHUNT_OHMS;
+    float deltaChargeAs = ((float)coulombData.accumulatorCode) * L9963_CURRENT_LSB_V *
+        BMS_CURRENT_ADC_PERIOD_S / BMS_CURRENT_SHUNT_OHMS;
 
     /*
      * 1 ampere-hour = 3600 ampere-seconds.
      */
-    coulombData.deltaChargeAh =
-        deltaChargeAs / 3600.0f;
+    coulombData.deltaChargeAh = deltaChargeAs / 3600.0f;
 
     /*
      * Keep a running charge-change total.
      */
-    coulombData.accumulatedChargeAh +=
-        coulombData.deltaChargeAh;
+    coulombData.accumulatedChargeAh += coulombData.deltaChargeAh;
 
     coulombData.valid = true;
 
     return true;
 }
 
+/*
+ * Temporary starting SoC reference.
+ *
+ * Only establish the reference after the AFE has
+ * initialized successfully. The 80 percent value is
+ * still only a software test reference and is NOT a
+ * measured battery state of charge.
+ */
 bool BMS_App_SetSocReference(float initialSocPercent)
 {
-    if ((initialSocPercent < 0.0f) ||
-        (initialSocPercent > 100.0f))
+    if ((initialSocPercent < 0.0f) || (initialSocPercent > 100.0f))
     {
         socData.referenceSet = false;
         socData.valid = false;
@@ -424,11 +363,9 @@ bool BMS_App_SetSocReference(float initialSocPercent)
      */
     coulombData.accumulatedChargeAh = 0.0f;
 
-    socData.referenceSocPercent =
-        initialSocPercent;
+    socData.referenceSocPercent = initialSocPercent;
 
-    socData.socPercent =
-        initialSocPercent;
+    socData.socPercent = initialSocPercent;
 
     socData.referenceSet = true;
     socData.valid = true;
@@ -452,24 +389,13 @@ bool BMS_App_UpdateSoc(void)
         return false;
     }
 
-    /*
-     * Convert accumulated charge change into
-     * a percentage of total pack capacity.
-     */
-    float socChangePercent =
-        (coulombData.accumulatedChargeAh /
-         BMS_PACK_CAPACITY_AH) *
-        100.0f *
-        BMS_SOC_CURRENT_DIRECTION;
+    //Convert accumulated charge change into a percentage of total pack capacity.
+    float socChangePercent = (coulombData.accumulatedChargeAh / BMS_PACK_CAPACITY_AH) *
+        100.0f * BMS_SOC_CURRENT_DIRECTION;
 
-    socData.socPercent =
-        socData.referenceSocPercent +
-        socChangePercent;
+    socData.socPercent = socData.referenceSocPercent + socChangePercent;
 
-    /*
-     * Clamp the estimate to the physical
-     * 0-100 percent range.
-     */
+    //Clamp the estimate to the physical 0-100 percent range.
     if (socData.socPercent > 100.0f)
     {
         socData.socPercent = 100.0f;
@@ -484,6 +410,11 @@ bool BMS_App_UpdateSoc(void)
     return true;
 }
 
+/*
+ * The individual application update functions
+ * maintain their own validity flags if a later
+ * measurement or communication operation fails.
+ */
 bool BMS_App_UpdateAll(void)
 {
     /*
@@ -494,17 +425,10 @@ bool BMS_App_UpdateAll(void)
      * later measurements from running after an earlier
      * failure.
      */
-    bool voltageOk =
-        BMS_App_UpdateVoltages();
-
-    bool currentOk =
-        BMS_App_UpdateCurrent();
-
-    bool coulombOk =
-        BMS_App_UpdateCoulombCount();
-
-    bool socOk =
-        BMS_App_UpdateSoc();
+    bool voltageOk = BMS_App_UpdateVoltages();
+    bool currentOk = BMS_App_UpdateCurrent();
+    bool coulombOk = BMS_App_UpdateCoulombCount();
+    bool socOk = BMS_App_UpdateSoc();
 
     /*
      * The overall cycle is considered successful only
@@ -513,10 +437,7 @@ bool BMS_App_UpdateAll(void)
      * Each subsystem still maintains its own validity
      * flag, so UART telemetry can show partial failures.
      */
-    return voltageOk &&
-           currentOk &&
-           coulombOk &&
-           socOk;
+    return voltageOk && currentOk && coulombOk && socOk;
 }
 
 void BMS_App_CheckVoltageFaults(void)
@@ -531,43 +452,30 @@ void BMS_App_CheckVoltageFaults(void)
      */
     if (!voltageData.valid)
     {
-        faultData.fault =
-            BMS_VOLTAGE_DATA_INVALID;
-
+        faultData.fault = BMS_VOLTAGE_DATA_INVALID;
         faultData.faultActive = true;
 
         return;
     }
 
-    /*
-     * Check every cell for an undervoltage or
-     * overvoltage condition.
-     */
-    for (uint8_t i = 0U;
-         i < BMS_CELL_COUNT;
-         i++)
+    //Check every cell for an undervoltage or overvoltage condition.
+    for (uint8_t i = 0U; i < BMS_CELL_COUNT; i++)
     {
-        if (voltageData.cellVoltage[i] <
-            BMS_CELL_UV_THRESHOLD_V)
+        if (voltageData.cellVoltage[i] < BMS_CELL_UV_THRESHOLD_V)
         {
-            faultData.fault =
-                BMS_CELL_UNDERVOLTAGE;
+            faultData.fault = BMS_CELL_UNDERVOLTAGE;
 
             faultData.faultCellIndex = i;
             faultData.faultActive = true;
-
             return;
         }
 
-        if (voltageData.cellVoltage[i] >
-            BMS_CELL_OV_THRESHOLD_V)
+        if (voltageData.cellVoltage[i] > BMS_CELL_OV_THRESHOLD_V)
         {
-            faultData.fault =
-                BMS_CELL_OVERVOLTAGE;
+            faultData.fault = BMS_CELL_OVERVOLTAGE;
 
             faultData.faultCellIndex = i;
             faultData.faultActive = true;
-
             return;
         }
     }
@@ -581,52 +489,36 @@ void BMS_App_CheckVoltageFaults(void)
  * the project does not require newlib-nano float printf
  * support.
  */
-int BMS_App_FormatTelemetry(
-    char *buffer,
-    unsigned int bufferSize)
+int BMS_App_FormatTelemetry( char *buffer, unsigned int bufferSize)
 {
-    if ((buffer == NULL) ||
-        (bufferSize == 0U))
-    {
-        return -1;
-    }
+    if ((buffer == NULL) || (bufferSize == 0U)) return -1;
 
-    uint32_t packMv =
-        (uint32_t)((voltageData.packVoltage * 1000.0f) + 0.5f);
-
+    //Voltages to ints
+    uint32_t packMv = (uint32_t)((voltageData.packVoltage * 1000.0f) + 0.5f);
     uint32_t cellMv[BMS_CELL_COUNT];
-
-    for (uint8_t i = 0U;
-         i < BMS_CELL_COUNT;
-         i++)
+    for (uint8_t i = 0U; i < BMS_CELL_COUNT; i++)
     {
-        cellMv[i] =
-            (uint32_t)((voltageData.cellVoltage[i] * 1000.0f) +
-                       0.5f);
+        cellMv[i] = (uint32_t)((voltageData.cellVoltage[i] * 1000.0f) + 0.5f);
     }
 
-    int32_t currentMa =
-        (int32_t)(currentData.packCurrent * 1000.0f);
-
-    char currentSign = '+';
-
+    //Currents to ints
+    int32_t currentMa = (int32_t)(currentData.packCurrent * 1000.0f);
+    char currentSign;
     uint32_t currentMagnitudeMa;
 
     if (currentMa < 0)
     {
         currentSign = '-';
-
-        currentMagnitudeMa =
-            (uint32_t)(-currentMa);
+        currentMagnitudeMa = (uint32_t)(-1*currentMa);
     }
     else
     {
-        currentMagnitudeMa =
-            (uint32_t)currentMa;
+    	currentSign = '+';
+        currentMagnitudeMa = (uint32_t)currentMa;
     }
 
-    uint32_t socTenths =
-        (uint32_t)((socData.socPercent * 10.0f) + 0.5f);
+    //SOC to int
+    uint32_t socTenths = (uint32_t)((socData.socPercent * 10.0f) + 0.5f);
 
     return snprintf(
         buffer,
@@ -683,33 +575,9 @@ int BMS_App_FormatTelemetry(
 }
 
 /* ===================== Data Access ===================== */
-
-const BMS_VoltageData_t *BMS_App_GetVoltageData(void)
-{
-    return &voltageData;
-}
-
-const BMS_TemperatureData_t *BMS_App_GetTemperatureData(void)
-{
-    return &temperatureData;
-}
-
-const BMS_CurrentData_t *BMS_App_GetCurrentData(void)
-{
-    return &currentData;
-}
-
-const BMS_CoulombData_t *BMS_App_GetCoulombData(void)
-{
-    return &coulombData;
-}
-
-const BMS_SocData_t *BMS_App_GetSocData(void)
-{
-    return &socData;
-}
-
-const BMS_FaultData_t *BMS_App_GetFaultData(void)
-{
-    return &faultData;
-}
+const BMS_VoltageData_t *BMS_App_GetVoltageData(void) {return &voltageData;}
+const BMS_TemperatureData_t *BMS_App_GetTemperatureData(void) {return &temperatureData;}
+const BMS_CurrentData_t *BMS_App_GetCurrentData(void) {return &currentData;}
+const BMS_CoulombData_t *BMS_App_GetCoulombData(void) {return &coulombData;}
+const BMS_SocData_t *BMS_App_GetSocData(void) {return &socData;}
+const BMS_FaultData_t *BMS_App_GetFaultData(void) {return &faultData;}

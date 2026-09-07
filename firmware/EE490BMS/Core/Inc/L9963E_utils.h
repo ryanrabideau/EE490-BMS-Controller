@@ -8,8 +8,8 @@
 
 #define L9963_VRES 0.000089f
 
-#define CELLS_N 7
-#define GPIOS_N 7
+#define CELLS_N 4
+#define GPIOS_N 0
 
 /*
  * Keep the current hardware-test cell configuration unchanged
@@ -25,9 +25,7 @@
  * This must be confirmed on the physical 7S pack before final
  * hardware integration.
  */
-#define ENABLED_CELLS \
-    (L9963E_CELL1 | L9963E_CELL2 | \
-     L9963E_CELL13 | L9963E_CELL14)
+#define ENABLED_CELLS (L9963E_CELL1 | L9963E_CELL2 | L9963E_CELL13 | L9963E_CELL14)
 
 /*
  * L9963E current ADC resolution:
@@ -72,9 +70,7 @@ uint16_t const *L9963E_utils_get_cells(uint8_t *len);
 
 float L9963E_utils_get_cell_mv(uint8_t index);
 
-void L9963E_utils_get_batt_mv(
-    float *v_tot,
-    float *v_sum);
+void L9963E_utils_get_batt_mv(float *v_tot, float *v_sum);
 
 
 /* ===================== Current sensing ===================== */
@@ -97,8 +93,7 @@ uint8_t L9963E_utils_enable_current_sense(void);
  *
  * Returns 1 on success and 0 on communication failure.
  */
-uint8_t L9963E_utils_read_current_raw(
-    int32_t *raw_current);
+uint8_t L9963E_utils_read_current_raw(int32_t *raw_current);
 
 
 /* ===================== Coulomb counting ===================== */
@@ -138,8 +133,7 @@ typedef struct
  *
  * Returns 1 on success and 0 on communication failure.
  */
-uint8_t L9963E_utils_read_coulomb_counter(
-    L9963E_CoulombData_t *data);
+uint8_t L9963E_utils_read_coulomb_counter(L9963E_CoulombData_t *data);
 
 
 #endif /* L9963E_UTILS_H */

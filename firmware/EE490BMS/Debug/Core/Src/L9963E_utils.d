@@ -2,7 +2,7 @@ Core/Src/L9963E_utils.o: ../Core/Src/L9963E_utils.c \
  ../Core/Inc/L9963E_utils.h ../Core/Inc/L9963E.h ../Core/Inc/L9963E_drv.h \
  ../Core/Inc/L9963E_burst.h ../Core/Inc/L9963E_interface.h \
  ../Core/Inc/L9963E_status.h ../Core/Inc/L9963E_registers.h \
- ../Core/Inc/stm32_if.h \
+ ../Core/Inc/stm32_if.h ../Core/Inc/main.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  ../Core/Inc/stm32f4xx_hal_conf.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h \
@@ -31,8 +31,7 @@ Core/Src/L9963E_utils.o: ../Core/Src/L9963E_utils.c \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
- ../Core/Inc/main.h
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
 ../Core/Inc/L9963E_utils.h:
 ../Core/Inc/L9963E.h:
 ../Core/Inc/L9963E_drv.h:
@@ -41,6 +40,7 @@ Core/Src/L9963E_utils.o: ../Core/Src/L9963E_utils.c \
 ../Core/Inc/L9963E_status.h:
 ../Core/Inc/L9963E_registers.h:
 ../Core/Inc/stm32_if.h:
+../Core/Inc/main.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 ../Core/Inc/stm32f4xx_hal_conf.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h:
@@ -70,4 +70,3 @@ Core/Src/L9963E_utils.o: ../Core/Src/L9963E_utils.c \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
-../Core/Inc/main.h:

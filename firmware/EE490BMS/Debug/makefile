@@ -64,8 +64,8 @@ all: main-build
 main-build: EE490BMS.elf secondary-outputs
 
 # Tool invocations
-EE490BMS.elf EE490BMS.map: $(OBJS) $(USER_OBJS) C:\Users\mikey\Documents\EE490-BMS-Controller\firmware\EE490BMS\STM32F411RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "EE490BMS.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\mikey\Documents\EE490-BMS-Controller\firmware\EE490BMS\STM32F411RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="EE490BMS.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+EE490BMS.elf EE490BMS.map: $(OBJS) $(USER_OBJS) C:\Users\mikey\Documents\Git\ Repos\EE490-BMS-Controller\firmware\EE490BMS\STM32F411RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "EE490BMS.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\mikey\Documents\Git Repos\EE490-BMS-Controller\firmware\EE490BMS\STM32F411RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="EE490BMS.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

@@ -1,0 +1,17 @@
+../Core/Src/bms_app.c:52:6:BMS_App_Init	1
+../Core/Src/bms_app.c:76:6:BMS_App_UpdateVoltages	8
+../Core/Src/bms_app.c:144:6:BMS_App_UpdateTemperatureInputs	5
+../Core/Src/bms_app.c:195:13:BMS_App_InitializeCurrentSense	4
+../Core/Src/bms_app.c:210:6:BMS_App_UpdateCurrent	3
+../Core/Src/bms_app.c:264:6:BMS_App_UpdateCoulombCount	4
+../Core/Src/bms_app.c:347:6:BMS_App_SetSocReference	3
+../Core/Src/bms_app.c:376:6:BMS_App_UpdateSoc	5
+../Core/Src/bms_app.c:418:6:BMS_App_UpdateAll	5
+../Core/Src/bms_app.c:443:6:BMS_App_CheckVoltageFaults	5
+../Core/Src/bms_app.c:492:5:BMS_App_FormatTelemetry	8
+../Core/Src/bms_app.c:578:26:BMS_App_GetVoltageData	1
+../Core/Src/bms_app.c:579:30:BMS_App_GetTemperatureData	1
+../Core/Src/bms_app.c:580:26:BMS_App_GetCurrentData	1
+../Core/Src/bms_app.c:581:26:BMS_App_GetCoulombData	1
+../Core/Src/bms_app.c:582:22:BMS_App_GetSocData	1
+../Core/Src/bms_app.c:583:24:BMS_App_GetFaultData	1
