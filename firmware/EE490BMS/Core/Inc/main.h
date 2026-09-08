@@ -61,8 +61,6 @@ void Error_Handler(void);
 #define B1_GPIO_Port GPIOC
 #define L9963T_SDO_SPI_MISO_Pin GPIO_PIN_2
 #define L9963T_SDO_SPI_MISO_GPIO_Port GPIOC
-#define L9963T_SDI_SPI_MOSI_Pin GPIO_PIN_3
-#define L9963T_SDI_SPI_MOSI_GPIO_Port GPIOC
 #define USART_TX_Pin GPIO_PIN_2
 #define USART_TX_GPIO_Port GPIOA
 #define USART_RX_Pin GPIO_PIN_3
@@ -81,6 +79,8 @@ void Error_Handler(void);
 #define L9963T_TXEN_GPIO_OUT_GPIO_Port GPIOB
 #define L9963T_SCK_SPI_SCK_Pin GPIO_PIN_10
 #define L9963T_SCK_SPI_SCK_GPIO_Port GPIOB
+#define L9963T_SDI_SPI_MOSI_Pin GPIO_PIN_15
+#define L9963T_SDI_SPI_MOSI_GPIO_Port GPIOB
 #define TMS_Pin GPIO_PIN_13
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
