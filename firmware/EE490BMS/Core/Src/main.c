@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include <stdio.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -77,6 +78,9 @@ void StartDefaultTask(void *argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+uint16_t adc;
+
+
 /* USER CODE END 0 */
 
 /**
@@ -117,6 +121,19 @@ int main(void)
   char telemetryBuffer[256];
   int telemetryLength;
 
+  // Setup for thermistor
+  HAL_ADC_Start(&hadc1);
+
+  //While for testing
+  while(1)
+  {
+	  //Get Thermistor values
+	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+	  adc=HAL_ADC_GetValue(&hadc1);
+	  HAL_Delay(500);
+
+  }
+
   // Flash LED on board for reference and startup
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
   HAL_Delay(100);
@@ -136,6 +153,7 @@ int main(void)
   // Super loop
   while (1)
   {
+
 	  //Get all Voltage, Current, SoC data from AFE
       BMS_App_UpdateAll();
 

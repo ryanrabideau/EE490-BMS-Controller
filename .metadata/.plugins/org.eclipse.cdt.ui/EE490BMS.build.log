@@ -1,0 +1,17 @@
+12:54:30 **** Incremental Build of configuration Debug for project EE490BMS ****
+make -j20 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F411xE -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Middlewares/Third_Party/FreeRTOS/Source/include -I../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2 -I../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "EE490BMS.elf" @"objects.list"   -mcpu=cortex-m4 -T"/home/robobro/Documents/Git Repos/EE490-BMS-Controller/firmware/EE490BMS/STM32F411RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="EE490BMS.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: EE490BMS.elf
+ 
+arm-none-eabi-size  EE490BMS.elf 
+arm-none-eabi-objdump -h -S EE490BMS.elf  > "EE490BMS.list"
+   text	   data	    bss	    dec	    hex	filename
+  14572	     92	   3428	  18092	   46ac	EE490BMS.elf
+Finished building: default.size.stdout
+ 
+Finished building: EE490BMS.list
+ 
+
+12:54:31 Build Finished. 0 errors, 0 warnings. (took 669ms)
+
