@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include <stdio.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -77,9 +78,7 @@ void StartDefaultTask(void *argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-uint16_t temp1;
-uint16_t temp2;
-uint16_t temp3;
+uint16_t adc;
 
 
 /* USER CODE END 0 */
@@ -123,33 +122,15 @@ int main(void)
   int telemetryLength;
 
   // Setup for thermistor
-  ADC_ChannelConfTypeDef sConfig = {0};
+  HAL_ADC_Start(&hadc1);
 
   //While for testing
   while(1)
   {
-	  sConfig.Channel = ADC_CHANNEL_0;
-	  HAL_ADC_Start(&hadc1);
-	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-	  temp1=HAL_ADC_GetValue(&hadc1);
-
+	  //Get Thermistor values
+	  HAL_ADC_PollForConversion(&hadc0, HAL_MAX_DELAY);
+	  adc=HAL_ADC_GetValue(&hadc0);
 	  HAL_Delay(500);
-
-	  sConfig.Channel = ADC_CHANNEL_1;
-	  HAL_ADC_Start(&hadc1);
-	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-	  temp2=HAL_ADC_GetValue(&hadc1);
-
-	  HAL_Delay(500);
-
-	  sConfig.Channel = ADC_CHANNEL_2;
-	  HAL_ADC_Start(&hadc1);
-	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-	  temp3=HAL_ADC_GetValue(&hadc1);
-
-	  HAL_Delay(500);
-
-
 
   }
 
@@ -318,7 +299,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.ScanConvMode = DISABLE;
-  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;

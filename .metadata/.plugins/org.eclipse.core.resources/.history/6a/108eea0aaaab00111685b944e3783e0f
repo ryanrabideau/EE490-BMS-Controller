@@ -123,7 +123,7 @@ int main(void)
   int telemetryLength;
 
   // Setup for thermistor
-  ADC_ChannelConfTypeDef sConfig = {0};
+
 
   //While for testing
   while(1)
