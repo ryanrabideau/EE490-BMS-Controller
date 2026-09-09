@@ -6,7 +6,7 @@
 ../Core/Src/bms_app.c:264:6:BMS_App_UpdateCoulombCount	4
 ../Core/Src/bms_app.c:347:6:BMS_App_SetSocReference	3
 ../Core/Src/bms_app.c:376:6:BMS_App_UpdateSoc	5
-../Core/Src/bms_app.c:418:6:BMS_App_UpdateAll	5
+../Core/Src/bms_app.c:418:6:BMS_App_UpdateAll	1
 ../Core/Src/bms_app.c:443:6:BMS_App_CheckVoltageFaults	5
 ../Core/Src/bms_app.c:492:5:BMS_App_FormatTelemetry	8
 ../Core/Src/bms_app.c:578:26:BMS_App_GetVoltageData	1

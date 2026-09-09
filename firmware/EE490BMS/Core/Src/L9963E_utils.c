@@ -137,7 +137,12 @@ static uint8_t L9963E_utils_read_battery_with_timeout(uint16_t *totalVoltage, ui
 
 uint8_t L9963E_utils_init(void)
 {
-    L9963E_StatusTypeDef status, status2;		// Debug variable to check read/write functions
+    L9963E_StatusTypeDef status;		// Debug variable to check read/write functions
+
+    //Disable comm timeout
+	L9963E_RegisterUnionTypeDef commTimeout;
+	commTimeout.generic = L9963E_BAL_1_DEFAULT;
+	commTimeout.Bal_1.comm_timeout_dis = 1;
 
     //Disable all GPIOs on AFE
     L9963E_RegisterUnionTypeDef GPIOCONFIG;
@@ -165,7 +170,8 @@ uint8_t L9963E_utils_init(void)
     status = L9963E_init(&h9l, interface, 1);
     status = L9963E_addressing_procedure(&h9l, 0b11, 0, 0, 1);
     L9963E_DRV_wakeup(&(h9l.drv_handle));
-    status2 = L9963E_setCommTimeout(&h9l, _2048MS, L9963E_DEVICE_BROADCAST, 0);	//Set longer to help with debugging
+    status = L9963E_DRV_reg_write(&(h9l.drv_handle), 0x1, L9963E_Bal_1_ADDR, &commTimeout, 10, 0);
+    status = L9963E_setCommTimeout(&h9l, _2048MS, L9963E_DEVICE_BROADCAST, 0);	//Set longer to help with debugging
     status = L9963E_set_enabled_cells(&h9l, 0x1, ENABLED_CELLS);
     status = L9963E_DRV_reg_write(&(h9l.drv_handle), 0x1, L9963E_GPIO9_3_CONF_ADDR, &GPIOCONFIG, 10, 0);
     status = L9963E_DRV_reg_write(&(h9l.drv_handle), 0x1, L9963E_VCELL_THRESH_UV_OV_ADDR, &vthresh, 10, 0);
@@ -180,7 +186,7 @@ uint8_t L9963E_utils_init(void)
 uint8_t L9963E_utils_read_cells(uint8_t read_gpio)
 {
 	L9963E_StatusTypeDef status;
-	L9963E_BurstUnionTypeDef burst;
+	L9963E_BurstUnionTypeDef burst1, burst2, burst3;
 //Working implementation. Burst simply reads all cell voltages at once
 
 	//Build adcv SOC message
@@ -196,28 +202,23 @@ uint8_t L9963E_utils_read_cells(uint8_t read_gpio)
 
     //Wait for conversion then read burst
     HAL_Delay(10);
-    status = L9963E_DRV_burst_cmd(&(h9l.drv_handle), 0x1, _0x78BurstCmd, &burst, 18, 100);
+    status = L9963E_DRV_burst_cmd(&(h9l.drv_handle), 0x1, _0x78BurstCmd, &burst1, L9963E_BURST_0x78_LEN, 100);
+    status = L9963E_DRV_burst_cmd(&(h9l.drv_handle), 0x1, _0x7ABurstCmd, &burst2, L9963E_BURST_0x7A_LEN, 100);
+    status = L9963E_DRV_burst_cmd(&(h9l.drv_handle), 0x1, _0x7BBurstCmd, &burst3, L9963E_BURST_0x7B_LEN, 100);
 
     //Convert to millivolts and store
-    vcells[0] = burst._0x78.Frame1_14[0].VCell* 89e-3f;
-    vcells[1] = burst._0x78.Frame1_14[1].VCell* 89e-3f;
-    vcells[2] = burst._0x78.Frame1_14[12].VCell* 89e-3f;
-    vcells[3] = burst._0x78.Frame1_14[13].VCell* 89e-3f;
+    vcells[0] = burst1._0x78.Frame1_14[0].VCell* 89e-3f;
+    vcells[1] = burst1._0x78.Frame1_14[1].VCell* 89e-3f;
+    vcells[2] = burst1._0x78.Frame1_14[12].VCell* 89e-3f;
+    vcells[3] = burst1._0x78.Frame1_14[13].VCell* 89e-3f;
 
-    int code = burst._0x78.Frame18.CUR_INST_calib;
+    uint32_t code = (~(burst1._0x78.Frame18.CUR_INST_calib) + 1) & 0x3FFFFUL; //2's Complement
 	float currentV = code*1.33e-6f;
-	float currenti = 1000*currentV/(12.5);
+	float currenti = currentV*100;
 
     //May or may not need to read these from burst
     vtot;
     vsumbatt;
-
-    //Keep for debugging
-
-//	L9963E_DRV_wakeup(&(h9l.drv_handle));
-//    status = L9963E_DRV_reg_read(&(h9l.drv_handle), 1, L9963E_ADCV_CONV_ADDR, &read, 10, 1);
-//	L9963E_DRV_wakeup(&(h9l.drv_handle));
-//	L9963E_DRV_burst_cmd(&(h9l.drv_handle), 0x1, _0x7ABurstCmd, &burst, 13, 100);
 
     return 1;
 
