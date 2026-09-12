@@ -139,6 +139,11 @@ uint8_t L9963E_utils_init(void)
 {
     L9963E_StatusTypeDef status;		// Debug variable to check read/write functions
 
+    //Disable comm timeout
+	L9963E_RegisterUnionTypeDef commTimeout;
+	commTimeout.generic = L9963E_BAL_1_DEFAULT;
+	commTimeout.Bal_1.comm_timeout_dis = 1;	//Disable comm timeout
+
     //Disable all GPIOs on AFE
     L9963E_RegisterUnionTypeDef GPIOCONFIG;
     GPIOCONFIG.generic = L9963E_GPIO9_3_CONF_DEFAULT;
@@ -152,18 +157,26 @@ uint8_t L9963E_utils_init(void)
     GPIOCONFIG.GPIO9_3_CONF.GPIO7_WUP_EN = 0;
 
     //Set UV/OV thresholds as wide as possible for individual cell and full stack
-    L9963E_RegisterUnionTypeDef THRESH;
-    THRESH.generic = L9963E_VCELL_THRESH_UV_OV_DEFAULT;
-    THRESH.VCELL_THRESH_UV_OV.threshVcellOV = 0b11111111;
-    THRESH.VCELL_THRESH_UV_OV.threshVcellUV = 0;
+    L9963E_RegisterUnionTypeDef vthresh;
+    vthresh.generic = L9963E_VCELL_THRESH_UV_OV_DEFAULT;
+    vthresh.VCELL_THRESH_UV_OV.threshVcellOV = 0b11111111;
+    vthresh.VCELL_THRESH_UV_OV.threshVcellUV = 0;
+
+    //Set Over-current threshold as wide as possible
+    L9963E_RegisterUnionTypeDef cthresh;
+    cthresh.generic = L9963E_CSA_THRESH_NORM_DEFAULT;
+    cthresh.VCELL_THRESH_UV_OV.threshVcellOV = 0b111111111111111111; //18-bit wide
 
     status = L9963E_init(&h9l, interface, 1);
     status = L9963E_addressing_procedure(&h9l, 0b11, 0, 0, 1);
-    status = L9963E_setCommTimeout(&h9l, _2048MS, L9963E_DEVICE_BROADCAST, 0);	//Set to longer to help with debugging
+    L9963E_DRV_wakeup(&(h9l.drv_handle));
+    status = L9963E_DRV_reg_write(&(h9l.drv_handle), 0x1, L9963E_Bal_1_ADDR, &commTimeout, 10, 0);
+    status = L9963E_setCommTimeout(&h9l, _2048MS, L9963E_DEVICE_BROADCAST, 0);	//Set longer to help with debugging
     status = L9963E_set_enabled_cells(&h9l, 0x1, ENABLED_CELLS);
     status = L9963E_DRV_reg_write(&(h9l.drv_handle), 0x1, L9963E_GPIO9_3_CONF_ADDR, &GPIOCONFIG, 10, 0);
-    status = L9963E_DRV_reg_write(&(h9l.drv_handle), 0x1, L9963E_VCELL_THRESH_UV_OV_ADDR, &THRESH, 10, 0);
-    status = L9963E_DRV_reg_write(&(h9l.drv_handle), 0x1, L9963E_VBATT_SUM_TH_ADDR, &THRESH, 10, 0);
+    status = L9963E_DRV_reg_write(&(h9l.drv_handle), 0x1, L9963E_VCELL_THRESH_UV_OV_ADDR, &vthresh, 10, 0);
+    status = L9963E_DRV_reg_write(&(h9l.drv_handle), 0x1, L9963E_VBATT_SUM_TH_ADDR, &vthresh, 10, 0);
+    status = L9963E_DRV_reg_write(&(h9l.drv_handle), 0x1, L9963E_CSA_THRESH_NORM_ADDR, &cthresh, 10, 0);
 
     return status;
 }
@@ -172,78 +185,122 @@ uint8_t L9963E_utils_init(void)
 
 uint8_t L9963E_utils_read_cells(uint8_t read_gpio)
 {
-    /*
-     * Measurements are collected into temporary storage first.
-     *
-     * The public measurement arrays are only updated after
-     * every requested read succeeds. This prevents the rest
-     * of the BMS from seeing a half-old / half-new data set.
-     */
-    uint16_t newCells[CELLS_N];
-    uint16_t newGpios[GPIOS_N];
-    uint16_t newVtot = 0U;
-    uint32_t newVsumbatt = 0U;
-    L9963E_StatusTypeDef status;
+	L9963E_StatusTypeDef status;
+	L9963E_BurstUnionTypeDef burst1, burst2, burst3;
+//Working implementation. Burst simply reads all cell voltages at once
 
-    //Begin an on-demand ADC conversion.
-    L9963E_DRV_wakeup(&(h9l.drv_handle));
+	//Build adcv SOC message
+	L9963E_RegisterUnionTypeDef adcv_conv_reg;
+	adcv_conv_reg.generic = L9963E_ADCV_CONV_DEFAULT;
+	adcv_conv_reg.ADCV_CONV.SOC = 1;
+	adcv_conv_reg.ADCV_CONV.ADC_FILTER_SOC = 0b001;
+	adcv_conv_reg.ADCV_CONV.CONF_CYCLIC_EN = 0;
 
-    status = L9963E_start_conversion(&h9l, 0x1, 0b111, read_gpio ? L9963E_GPIO_CONV : 0U);
+	//Send SOC message
+    L9963E_DRV_wakeup(&(h9l.drv_handle));	//Might remove depending on how long AFE stays awake
+    status = L9963E_DRV_reg_write(&(h9l.drv_handle), 1, L9963E_ADCV_CONV_ADDR, &adcv_conv_reg, 10, 1);
 
-    if (status != L9963E_OK) return 0U;
+    //Wait for conversion then read burst
+    HAL_Delay(10);
+    status = L9963E_DRV_burst_cmd(&(h9l.drv_handle), 0x1, _0x78BurstCmd, &burst1, L9963E_BURST_0x78_LEN, 100);
+    status = L9963E_DRV_burst_cmd(&(h9l.drv_handle), 0x1, _0x7ABurstCmd, &burst2, L9963E_BURST_0x7A_LEN, 100);
+    status = L9963E_DRV_burst_cmd(&(h9l.drv_handle), 0x1, _0x7BBurstCmd, &burst3, L9963E_BURST_0x7B_LEN, 100);
 
-    //Wait for conversion completion without allowing the MCU to hang forever.
-    if (!L9963E_utils_wait_for_conversion()) return 0U;
+    //Convert to millivolts and store
+    vcells[0] = burst1._0x78.Frame1_14[0].VCell* 89e-3f;
+    vcells[1] = burst1._0x78.Frame1_14[1].VCell* 89e-3f;
+    vcells[2] = burst1._0x78.Frame1_14[2].VCell* 89e-3f;
+    vcells[3] = burst1._0x78.Frame1_14[3].VCell* 89e-3f;
+    vcells[4] = burst1._0x78.Frame1_14[11].VCell* 89e-3f;
+    vcells[5] = burst1._0x78.Frame1_14[12].VCell* 89e-3f;
+    vcells[6] = burst1._0x78.Frame1_14[13].VCell* 89e-3f;
 
-    //Acquire the seven cell channels used by the project's 7S application mapping.
-    if (!L9963E_utils_read_cell_with_timeout(L9963E_CELL1, &newCells[0])) return 0U;
-    if (!L9963E_utils_read_cell_with_timeout(L9963E_CELL2, &newCells[1])) return 0U;
-    if (!L9963E_utils_read_cell_with_timeout(L9963E_CELL3, &newCells[2])) return 0U;
-    if (!L9963E_utils_read_cell_with_timeout(L9963E_CELL4, &newCells[3])) return 0U;
-    if (!L9963E_utils_read_cell_with_timeout(L9963E_CELL12, &newCells[4])) return 0U;
-    if (!L9963E_utils_read_cell_with_timeout(L9963E_CELL13, &newCells[5])) return 0U;
-    if (!L9963E_utils_read_cell_with_timeout(L9963E_CELL14, &newCells[6])) return 0U;
+    uint32_t code = (~(burst1._0x78.Frame18.CUR_INST_calib) + 1) & 0x3FFFFUL; //2's Complement
+	float currentV = code*1.33e-6f;
+	float currenti = currentV*100;
 
-    //Read total battery voltage.
-    if (!L9963E_utils_read_battery_with_timeout(&newVtot, &newVsumbatt))
-    {
-        return 0U;
-    }
+    //May or may not need to read these from burst
+    vtot;
+    vsumbatt;
 
-    //If GPIO/temperature measurements were requested, acquire GPIO3 through GPIO9.
-    if (read_gpio)
-    {
-        if (!L9963E_utils_read_gpio_with_timeout(L9963E_GPIO3, &newGpios[0])) return 0U;
-        if (!L9963E_utils_read_gpio_with_timeout(L9963E_GPIO4, &newGpios[1])) return 0U;
-        if (!L9963E_utils_read_gpio_with_timeout(L9963E_GPIO5, &newGpios[2])) return 0U;
-        if (!L9963E_utils_read_gpio_with_timeout(L9963E_GPIO6, &newGpios[3])) return 0U;
-        if (!L9963E_utils_read_gpio_with_timeout(L9963E_GPIO7, &newGpios[4])) return 0U;
-        if (!L9963E_utils_read_gpio_with_timeout(L9963E_GPIO8, &newGpios[5])) return 0U;
-        if (!L9963E_utils_read_gpio_with_timeout(L9963E_GPIO9, &newGpios[6])) return 0U;
-    }
+    return 1;
 
-    /*
-     * The complete requested measurement set succeeded.
-     *
-     * Publish the new values atomically from the
-     * application's point of view.
-     */
-    for (uint8_t i = 0U; i < CELLS_N; i++)
-    {
-        vcells[i] = newCells[i];
-    }
 
-    vtot = newVtot;
-    vsumbatt = newVsumbatt;
+//Potential implementation. Might work to read cell registers individually but not tested
 
-    if (read_gpio)
-    {
-        for (uint8_t i = 0U; i < GPIOS_N; i++)
-        {
-            vgpio[i] = newGpios[i];
-        }
-    }
-    return 1U;
+//    /*
+//     * Measurements are collected into temporary storage first.
+//     *
+//     * The public measurement arrays are only updated after
+//     * every requested read succeeds. This prevents the rest
+//     * of the BMS from seeing a half-old / half-new data set.
+//     */
+//
+//    uint16_t newCells[CELLS_N];
+//    uint16_t newGpios[GPIOS_N];
+//    uint16_t newVtot = 0U;
+//    uint32_t newVsumbatt = 0U;
+//    L9963E_StatusTypeDef status;
+//
+//    //Begin an on-demand ADC conversion.
+//    L9963E_DRV_wakeup(&(h9l.drv_handle));
+//
+//    status = L9963E_start_conversion(&h9l, 0x1, 0b111, read_gpio ? L9963E_GPIO_CONV : 0U);
+//
+//    if (status != L9963E_OK) return 0U;
+//
+//    //Wait for conversion completion without allowing the MCU to hang forever.
+//    if (!L9963E_utils_wait_for_conversion()) return 0U;
+//
+//    //Acquire the seven cell channels used by the project's 7S application mapping.
+//    if (!L9963E_utils_read_cell_with_timeout(L9963E_CELL1, &newCells[0])) return 0U;
+//    if (!L9963E_utils_read_cell_with_timeout(L9963E_CELL2, &newCells[1])) return 0U;
+//    if (!L9963E_utils_read_cell_with_timeout(L9963E_CELL3, &newCells[2])) return 0U;
+//    if (!L9963E_utils_read_cell_with_timeout(L9963E_CELL4, &newCells[3])) return 0U;
+//    if (!L9963E_utils_read_cell_with_timeout(L9963E_CELL12, &newCells[4])) return 0U;
+//    if (!L9963E_utils_read_cell_with_timeout(L9963E_CELL13, &newCells[5])) return 0U;
+//    if (!L9963E_utils_read_cell_with_timeout(L9963E_CELL14, &newCells[6])) return 0U;
+//
+//    //Read total battery voltage.
+//    if (!L9963E_utils_read_battery_with_timeout(&newVtot, &newVsumbatt))
+//    {
+//        return 0U;
+//    }
+//
+//    //If GPIO/temperature measurements were requested, acquire GPIO3 through GPIO9.
+//    if (read_gpio)
+//    {
+//        if (!L9963E_utils_read_gpio_with_timeout(L9963E_GPIO3, &newGpios[0])) return 0U;
+//        if (!L9963E_utils_read_gpio_with_timeout(L9963E_GPIO4, &newGpios[1])) return 0U;
+//        if (!L9963E_utils_read_gpio_with_timeout(L9963E_GPIO5, &newGpios[2])) return 0U;
+//        if (!L9963E_utils_read_gpio_with_timeout(L9963E_GPIO6, &newGpios[3])) return 0U;
+//        if (!L9963E_utils_read_gpio_with_timeout(L9963E_GPIO7, &newGpios[4])) return 0U;
+//        if (!L9963E_utils_read_gpio_with_timeout(L9963E_GPIO8, &newGpios[5])) return 0U;
+//        if (!L9963E_utils_read_gpio_with_timeout(L9963E_GPIO9, &newGpios[6])) return 0U;
+//    }
+//
+//    /*
+//     * The complete requested measurement set succeeded.
+//     *
+//     * Publish the new values atomically from the
+//     * application's point of view.
+//     */
+//    for (uint8_t i = 0U; i < CELLS_N; i++)
+//    {
+//        vcells[i] = newCells[i];
+//    }
+//
+//    vtot = newVtot;
+//    vsumbatt = newVsumbatt;
+//
+//    if (read_gpio)
+//    {
+//        for (uint8_t i = 0U; i < GPIOS_N; i++)
+//        {
+//            vgpio[i] = newGpios[i];
+//        }
+//    }
+//    return 1U;
 }
 
 

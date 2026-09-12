@@ -8,7 +8,7 @@
 
 #define L9963_VRES 0.000089f
 
-#define CELLS_N 4
+#define CELLS_N 7
 #define GPIOS_N 0
 
 /*
@@ -25,7 +25,7 @@
  * This must be confirmed on the physical 7S pack before final
  * hardware integration.
  */
-#define ENABLED_CELLS (L9963E_CELL1 | L9963E_CELL2 | L9963E_CELL13 | L9963E_CELL14)
+#define ENABLED_CELLS (L9963E_CELL1 | L9963E_CELL2 | L9963E_CELL3 | L9963E_CELL4 | L9963E_CELL12 | L9963E_CELL13 | L9963E_CELL14)
 
 /*
  * L9963E current ADC resolution:

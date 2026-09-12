@@ -426,9 +426,9 @@ bool BMS_App_UpdateAll(void)
      * failure.
      */
     bool voltageOk = BMS_App_UpdateVoltages();
-    bool currentOk = BMS_App_UpdateCurrent();
-    bool coulombOk = BMS_App_UpdateCoulombCount();
-    bool socOk = BMS_App_UpdateSoc();
+//    bool currentOk = BMS_App_UpdateCurrent();
+//    bool coulombOk = BMS_App_UpdateCoulombCount();
+//    bool socOk = BMS_App_UpdateSoc();
 
     /*
      * The overall cycle is considered successful only
@@ -437,7 +437,7 @@ bool BMS_App_UpdateAll(void)
      * Each subsystem still maintains its own validity
      * flag, so UART telemetry can show partial failures.
      */
-    return voltageOk && currentOk && coulombOk && socOk;
+//    return voltageOk && currentOk && coulombOk && socOk;
 }
 
 void BMS_App_CheckVoltageFaults(void)

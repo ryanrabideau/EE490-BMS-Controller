@@ -258,13 +258,7 @@ L9963E_StatusTypeDef L9963E_start_conversion(L9963E_HandleTypeDef *handle,
                                              uint8_t device,
                                              uint8_t adc_filter_soc,
                                              uint8_t options) {
-    L9963E_RegisterUnionTypeDef adcv_conv_reg = {0};
-
-#if L9963E_DEBUG
-    if (handle == NULL) {
-        return L9963E_ERROR;
-    }
-#endif
+    L9963E_RegisterUnionTypeDef adcv_conv_reg;
 
     adcv_conv_reg.ADCV_CONV.ADC_FILTER_SOC = adc_filter_soc;
 
@@ -279,7 +273,7 @@ L9963E_StatusTypeDef L9963E_start_conversion(L9963E_HandleTypeDef *handle,
 
 L9963E_StatusTypeDef L9963E_poll_conversion(L9963E_HandleTypeDef *handle, uint8_t device, uint8_t *conversion_done) {
     L9963E_StatusTypeDef errorcode            = L9963E_OK;
-    L9963E_RegisterUnionTypeDef adcv_conv_reg = {0};
+    L9963E_RegisterUnionTypeDef adcv_conv_reg;
 
 #if L9963E_DEBUG
     if (handle == NULL) {
