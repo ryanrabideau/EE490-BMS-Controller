@@ -142,7 +142,7 @@ uint8_t L9963E_utils_init(void)
     //Disable comm timeout
 	L9963E_RegisterUnionTypeDef commTimeout;
 	commTimeout.generic = L9963E_BAL_1_DEFAULT;
-	commTimeout.Bal_1.comm_timeout_dis = 1;
+	commTimeout.Bal_1.comm_timeout_dis = 1;	//Disable comm timeout
 
     //Disable all GPIOs on AFE
     L9963E_RegisterUnionTypeDef GPIOCONFIG;
@@ -209,8 +209,11 @@ uint8_t L9963E_utils_read_cells(uint8_t read_gpio)
     //Convert to millivolts and store
     vcells[0] = burst1._0x78.Frame1_14[0].VCell* 89e-3f;
     vcells[1] = burst1._0x78.Frame1_14[1].VCell* 89e-3f;
-    vcells[2] = burst1._0x78.Frame1_14[12].VCell* 89e-3f;
-    vcells[3] = burst1._0x78.Frame1_14[13].VCell* 89e-3f;
+    vcells[2] = burst1._0x78.Frame1_14[2].VCell* 89e-3f;
+    vcells[3] = burst1._0x78.Frame1_14[3].VCell* 89e-3f;
+    vcells[4] = burst1._0x78.Frame1_14[11].VCell* 89e-3f;
+    vcells[5] = burst1._0x78.Frame1_14[12].VCell* 89e-3f;
+    vcells[6] = burst1._0x78.Frame1_14[13].VCell* 89e-3f;
 
     uint32_t code = (~(burst1._0x78.Frame18.CUR_INST_calib) + 1) & 0x3FFFFUL; //2's Complement
 	float currentV = code*1.33e-6f;
