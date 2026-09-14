@@ -127,7 +127,25 @@ int main(void)
   int telemetryLength;
 
   // Setup for thermistor
+  while (1)
+  {
+      HAL_ADC_Start(&hadc1);
 
+      HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+      vadc1 = (HAL_ADC_GetValue(&hadc1) / 4095.0f) * 3.3f;
+      temp1 = (9.0f/5.0f) * ( 1.0f / ( (1.0f/298.15f) + (1.0f/3435.0f) * logf(vadc1/(3.3f - vadc1)) ) - 273.15f ) + 32.0f;
+
+      HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+      vadc2 = (HAL_ADC_GetValue(&hadc1) / 4095.0f) * 3.3f;
+      temp2 = (9.0f/5.0f) * ( 1.0f / ( (1.0f/298.15f) + (1.0f/3435.0f) * logf(vadc2/(3.3f - vadc2)) ) - 273.15f ) + 32.0f;
+
+      HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+      vadc3 = (HAL_ADC_GetValue(&hadc1) / 4095.0f) * 3.3f;
+      temp3 = (9.0f/5.0f) * ( 1.0f / ( (1.0f/298.15f) + (1.0f/3435.0f) * logf(vadc3/(3.3f - vadc3)) ) - 273.15f ) + 32.0f;
+
+      HAL_ADC_Stop(&hadc1);
+      HAL_Delay(500);
+  }
 
   // Flash LED on board for reference and startup
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);

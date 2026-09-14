@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;EE490BMS/Core/Inc/ADCRead.h&apos; to &apos;THERMISTOR.h&apos;" description="Rename resource &apos;ADCRead.h&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="Core/Inc/ADCRead.h" name="THERMISTOR.h" stamp="1789409939738" updateReferences="true"/>
+</session>
