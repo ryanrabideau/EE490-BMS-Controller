@@ -139,6 +139,24 @@ int main(void)
   int adc_val = 0;
   float current = 0;
 
+  HAL_GPIO_WritePin(SW_EVEN_GPIO_Port, SW_EVEN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(SW_ODD_GPIO_Port, SW_ODD_Pin, GPIO_PIN_RESET);
+
+<<<<<<< HEAD
+  while (1) {
+	  HAL_GPIO_WritePin(SW_EVEN_GPIO_Port, SW_EVEN_Pin, GPIO_PIN_SET);
+	  HAL_Delay(50);
+	  HAL_GPIO_WritePin(SW_EVEN_GPIO_Port, SW_EVEN_Pin, GPIO_PIN_RESET);
+	  HAL_Delay(50);
+
+	  HAL_GPIO_WritePin(SW_ODD_GPIO_Port, SW_ODD_Pin, GPIO_PIN_SET);
+	  HAL_Delay(50);
+	  HAL_GPIO_WritePin(SW_ODD_GPIO_Port, SW_ODD_Pin, GPIO_PIN_RESET);
+	  HAL_Delay(50);
+  }
+
+=======
+>>>>>>> users/Ryan
   // Super loop
   while (1)
   {
@@ -153,11 +171,20 @@ int main(void)
 
 	  HAL_ADC_Stop(&hadc1); // Stop ADC
 
-	  //Get all Voltage, Current, SoC data from AFE
-      BMS_App_UpdateAll();
+	  BMS_App_UpdateAll();
 
-      //Convert the latest BMS state into one human-readable UART message
-      telemetryLength = BMS_App_FormatTelemetry(telemetryBuffer, sizeof(telemetryBuffer));
+	  const BMS_FaultData_t *faultData = BMS_App_GetFaultData();
+
+	  if ((faultData != NULL) && !faultData->faultActive)
+	  {
+	      HAL_GPIO_WritePin(MASTER_SWITCH_GPIO_Port, MASTER_SWITCH_Pin, GPIO_PIN_SET);
+	  }
+	  else
+	  {
+	      HAL_GPIO_WritePin(MASTER_SWITCH_GPIO_Port, MASTER_SWITCH_Pin, GPIO_PIN_RESET);
+	  }
+
+	  telemetryLength = BMS_App_FormatTelemetry(telemetryBuffer, sizeof(telemetryBuffer));
 
       if (telemetryLength > 0)
       {
@@ -462,19 +489,26 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, SW_EVEN_Pin|SW_ODD_Pin|L9963T_NCS_GPIO_OUT_Pin|L9963T_DIS_GPIO_INOUT_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, L9963T_NCS_GPIO_OUT_Pin|L9963T_DIS_GPIO_INOUT_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, L9963T_ISOFREQ_GPIO_OUT_Pin|L9963T_TXEN_GPIO_OUT_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, L9963T_ISOFREQ_GPIO_OUT_Pin|L9963T_TXEN_GPIO_OUT_Pin|MASTER_SWITCH_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : SW_EVEN_Pin SW_ODD_Pin L9963T_NCS_GPIO_OUT_Pin L9963T_DIS_GPIO_INOUT_Pin */
+  GPIO_InitStruct.Pin = SW_EVEN_Pin|SW_ODD_Pin|L9963T_NCS_GPIO_OUT_Pin|L9963T_DIS_GPIO_INOUT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LD2_Pin */
   GPIO_InitStruct.Pin = LD2_Pin;
@@ -483,15 +517,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : L9963T_NCS_GPIO_OUT_Pin L9963T_DIS_GPIO_INOUT_Pin */
-  GPIO_InitStruct.Pin = L9963T_NCS_GPIO_OUT_Pin|L9963T_DIS_GPIO_INOUT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : L9963T_ISOFREQ_GPIO_OUT_Pin L9963T_TXEN_GPIO_OUT_Pin */
-  GPIO_InitStruct.Pin = L9963T_ISOFREQ_GPIO_OUT_Pin|L9963T_TXEN_GPIO_OUT_Pin;
+  /*Configure GPIO pins : L9963T_ISOFREQ_GPIO_OUT_Pin L9963T_TXEN_GPIO_OUT_Pin MASTER_SWITCH_Pin */
+  GPIO_InitStruct.Pin = L9963T_ISOFREQ_GPIO_OUT_Pin|L9963T_TXEN_GPIO_OUT_Pin|MASTER_SWITCH_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;

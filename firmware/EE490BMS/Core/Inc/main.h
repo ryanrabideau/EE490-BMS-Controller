@@ -59,6 +59,10 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define B1_Pin GPIO_PIN_13
 #define B1_GPIO_Port GPIOC
+#define SW_EVEN_Pin GPIO_PIN_0
+#define SW_EVEN_GPIO_Port GPIOC
+#define SW_ODD_Pin GPIO_PIN_1
+#define SW_ODD_GPIO_Port GPIOC
 #define L9963T_SDO_SPI_MISO_Pin GPIO_PIN_2
 #define L9963T_SDO_SPI_MISO_GPIO_Port GPIOC
 #define L9963T_SDI_SPI_MOSI_Pin GPIO_PIN_3
@@ -87,6 +91,8 @@ void Error_Handler(void);
 #define TCK_GPIO_Port GPIOA
 #define SWO_Pin GPIO_PIN_3
 #define SWO_GPIO_Port GPIOB
+#define MASTER_SWITCH_Pin GPIO_PIN_5
+#define MASTER_SWITCH_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
