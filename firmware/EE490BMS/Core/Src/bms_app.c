@@ -418,7 +418,10 @@ bool BMS_App_UpdateSoc(void)
 bool BMS_App_UpdateAll(void)
 {
     bool voltageOk = BMS_App_UpdateVoltages();
-    return voltageOk;
+    bool temperatureOk = BMS_App_UpdateTemperatureInputs();
+    bool currentOk = BMS_App_UpdateCurrent();
+
+    return voltageOk && temperatureOk && currentOk;
 }
 
 void BMS_App_CheckVoltageFaults(void)
@@ -483,6 +486,29 @@ int BMS_App_FormatTelemetry(char *buffer, unsigned int bufferSize)
         cellMv[i] = (uint32_t)((voltageData.cellVoltage[i] * 1000.0f) + 0.5f);
     }
 
+    // Temperature input voltages to millivolts
+    uint32_t tempMv[BMS_TEMP_CHANNEL_COUNT];
+
+    for (uint8_t i = 0U; i < BMS_TEMP_CHANNEL_COUNT; i++)
+    {
+        tempMv[i] = (uint32_t)((temperatureData.gpioVoltage[i] * 1000.0f) + 0.5f);
+    }
+
+    // Current to milliamps
+    int32_t currentMa = (int32_t)(currentData.packCurrent * 1000.0f);
+    char currentSign = '+';
+    uint32_t currentMagnitudeMa;
+
+    if (currentMa < 0)
+    {
+        currentSign = '-';
+        currentMagnitudeMa = (uint32_t)(-currentMa);
+    }
+    else
+    {
+        currentMagnitudeMa = (uint32_t)currentMa;
+    }
+
     // Convert voltage fault state to a UART message
     const char *faultString = "OK";
     uint8_t faultCell = 0U;
@@ -512,11 +538,20 @@ int BMS_App_FormatTelemetry(char *buffer, unsigned int bufferSize)
         "%lu.%03lu "
         "%lu.%03lu "
         "%lu.%03lu "
-        "%lu.%03lu "
-        "%lu.%03lu V | "
-        "FAULT: %s | "
-        "CELL: %u | "
-        "VALID: %u\r\n",
+		"%lu.%03lu "
+		"%lu.%03lu V | "
+		"TEMP V: "
+		"%lu.%03lu "
+		"%lu.%03lu "
+		"%lu.%03lu "
+		"%lu.%03lu "
+		"%lu.%03lu "
+		"%lu.%03lu "
+		"%lu.%03lu V | "
+		"CURRENT: %c%lu.%03lu A | "
+		"FAULT: %s | "
+		"CELL: %u | "
+		"VALID[V:%u T:%u I:%u]\r\n",
         (unsigned long)(packMv / 1000U),
         (unsigned long)(packMv % 1000U),
         (unsigned long)(cellMv[0] / 1000U),
@@ -531,11 +566,33 @@ int BMS_App_FormatTelemetry(char *buffer, unsigned int bufferSize)
         (unsigned long)(cellMv[4] % 1000U),
         (unsigned long)(cellMv[5] / 1000U),
         (unsigned long)(cellMv[5] % 1000U),
-        (unsigned long)(cellMv[6] / 1000U),
-        (unsigned long)(cellMv[6] % 1000U),
-        faultString,
-        faultCell,
-        voltageData.valid ? 1U : 0U);
+		(unsigned long)(cellMv[6] / 1000U),
+		(unsigned long)(cellMv[6] % 1000U),
+
+		(unsigned long)(tempMv[0] / 1000U),
+		(unsigned long)(tempMv[0] % 1000U),
+		(unsigned long)(tempMv[1] / 1000U),
+		(unsigned long)(tempMv[1] % 1000U),
+		(unsigned long)(tempMv[2] / 1000U),
+		(unsigned long)(tempMv[2] % 1000U),
+		(unsigned long)(tempMv[3] / 1000U),
+		(unsigned long)(tempMv[3] % 1000U),
+		(unsigned long)(tempMv[4] / 1000U),
+		(unsigned long)(tempMv[4] % 1000U),
+		(unsigned long)(tempMv[5] / 1000U),
+		(unsigned long)(tempMv[5] % 1000U),
+		(unsigned long)(tempMv[6] / 1000U),
+		(unsigned long)(tempMv[6] % 1000U),
+
+		currentSign,
+		(unsigned long)(currentMagnitudeMa / 1000U),
+		(unsigned long)(currentMagnitudeMa % 1000U),
+
+		faultString,
+		faultCell,
+		voltageData.valid ? 1U : 0U,
+		temperatureData.valid ? 1U : 0U,
+		currentData.valid ? 1U : 0U);
 }
 
 /* ===================== Data Access ===================== */
