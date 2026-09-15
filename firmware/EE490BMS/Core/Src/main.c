@@ -143,10 +143,14 @@ int main(void)
 
   while (1) {
 	  HAL_GPIO_WritePin(SW_EVEN_GPIO_Port, SW_EVEN_Pin, GPIO_PIN_SET);
+	  HAL_Delay(50);
 	  HAL_GPIO_WritePin(SW_EVEN_GPIO_Port, SW_EVEN_Pin, GPIO_PIN_RESET);
+	  HAL_Delay(50);
 
 	  HAL_GPIO_WritePin(SW_ODD_GPIO_Port, SW_ODD_Pin, GPIO_PIN_SET);
+	  HAL_Delay(50);
 	  HAL_GPIO_WritePin(SW_ODD_GPIO_Port, SW_ODD_Pin, GPIO_PIN_RESET);
+	  HAL_Delay(50);
   }
 
   // Super loop
