@@ -126,7 +126,7 @@ int main(void)
   BMS_App_Init();
 
   //Initialize and address the L9963E AFE.
-//  L9963E_utils_init();
+  L9963E_utils_init();
 
   //Known SOC starting value
   BMS_App_SetSocReference(80.0f);
@@ -138,16 +138,9 @@ int main(void)
 
   int adc_val = 0;
   float current = 0;
+
   HAL_GPIO_WritePin(SW_EVEN_GPIO_Port, SW_EVEN_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(SW_ODD_GPIO_Port, SW_ODD_Pin, GPIO_PIN_RESET);
-
-  while (1) {
-	  HAL_GPIO_WritePin(SW_EVEN_GPIO_Port, SW_EVEN_Pin, GPIO_PIN_SET);
-	  HAL_GPIO_WritePin(SW_EVEN_GPIO_Port, SW_EVEN_Pin, GPIO_PIN_RESET);
-
-	  HAL_GPIO_WritePin(SW_ODD_GPIO_Port, SW_ODD_Pin, GPIO_PIN_SET);
-	  HAL_GPIO_WritePin(SW_ODD_GPIO_Port, SW_ODD_Pin, GPIO_PIN_RESET);
-  }
 
   // Super loop
   while (1)
@@ -163,11 +156,20 @@ int main(void)
 
 	  HAL_ADC_Stop(&hadc1); // Stop ADC
 
-	  //Get all Voltage, Current, SoC data from AFE
-      BMS_App_UpdateAll();
+	  BMS_App_UpdateAll();
 
-      //Convert the latest BMS state into one human-readable UART message
-      telemetryLength = BMS_App_FormatTelemetry(telemetryBuffer, sizeof(telemetryBuffer));
+	  const BMS_FaultData_t *faultData = BMS_App_GetFaultData();
+
+	  if ((faultData != NULL) && !faultData->faultActive)
+	  {
+	      HAL_GPIO_WritePin(MASTER_SWITCH_GPIO_Port, MASTER_SWITCH_Pin, GPIO_PIN_SET);
+	  }
+	  else
+	  {
+	      HAL_GPIO_WritePin(MASTER_SWITCH_GPIO_Port, MASTER_SWITCH_Pin, GPIO_PIN_RESET);
+	  }
+
+	  telemetryLength = BMS_App_FormatTelemetry(telemetryBuffer, sizeof(telemetryBuffer));
 
       if (telemetryLength > 0)
       {
@@ -478,7 +480,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, L9963T_ISOFREQ_GPIO_OUT_Pin|L9963T_TXEN_GPIO_OUT_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, L9963T_ISOFREQ_GPIO_OUT_Pin|L9963T_TXEN_GPIO_OUT_Pin|MASTER_SWITCH_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -500,8 +502,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : L9963T_ISOFREQ_GPIO_OUT_Pin L9963T_TXEN_GPIO_OUT_Pin */
-  GPIO_InitStruct.Pin = L9963T_ISOFREQ_GPIO_OUT_Pin|L9963T_TXEN_GPIO_OUT_Pin;
+  /*Configure GPIO pins : L9963T_ISOFREQ_GPIO_OUT_Pin L9963T_TXEN_GPIO_OUT_Pin MASTER_SWITCH_Pin */
+  GPIO_InitStruct.Pin = L9963T_ISOFREQ_GPIO_OUT_Pin|L9963T_TXEN_GPIO_OUT_Pin|MASTER_SWITCH_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;

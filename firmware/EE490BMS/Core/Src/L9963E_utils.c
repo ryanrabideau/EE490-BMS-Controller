@@ -330,7 +330,7 @@ uint16_t const *L9963E_utils_get_cells(uint8_t *len)
 
 float L9963E_utils_get_cell_mv(uint8_t index)
 {
-    return vcells[index] * 89e-3f;
+    return vcells[index];
 }
 
 

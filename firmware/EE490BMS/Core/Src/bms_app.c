@@ -94,9 +94,9 @@ bool BMS_App_UpdateVoltages(void)
         return false;
     }
 
-    const uint16_t *rawCells = L9963E_utils_get_cells(&cellCount);
+    const uint16_t *cells = L9963E_utils_get_cells(&cellCount);
 
-    if ((rawCells == NULL) || (cellCount != BMS_CELL_COUNT))
+    if ((cells == NULL) || (cellCount != BMS_CELL_COUNT))
     {
         voltageData.valid = false;
         BMS_App_CheckVoltageFaults();
@@ -417,27 +417,8 @@ bool BMS_App_UpdateSoc(void)
  */
 bool BMS_App_UpdateAll(void)
 {
-    /*
-     * Run each operation independently.
-     *
-     * Do not combine these calls directly with &&
-     * because short-circuit evaluation would prevent
-     * later measurements from running after an earlier
-     * failure.
-     */
     bool voltageOk = BMS_App_UpdateVoltages();
-//    bool currentOk = BMS_App_UpdateCurrent();
-//    bool coulombOk = BMS_App_UpdateCoulombCount();
-//    bool socOk = BMS_App_UpdateSoc();
-
-    /*
-     * The overall cycle is considered successful only
-     * if every requested subsystem updated successfully.
-     *
-     * Each subsystem still maintains its own validity
-     * flag, so UART telemetry can show partial failures.
-     */
-//    return voltageOk && currentOk && coulombOk && socOk;
+    return voltageOk;
 }
 
 void BMS_App_CheckVoltageFaults(void)
@@ -489,41 +470,41 @@ void BMS_App_CheckVoltageFaults(void)
  * the project does not require newlib-nano float printf
  * support.
  */
-int BMS_App_FormatTelemetry( char *buffer, unsigned int bufferSize)
+int BMS_App_FormatTelemetry(char *buffer, unsigned int bufferSize)
 {
     if ((buffer == NULL) || (bufferSize == 0U)) return -1;
 
-    //Voltages to ints
+    // Voltages to ints
     uint32_t packMv = (uint32_t)((voltageData.packVoltage * 1000.0f) + 0.5f);
     uint32_t cellMv[BMS_CELL_COUNT];
+
     for (uint8_t i = 0U; i < BMS_CELL_COUNT; i++)
     {
         cellMv[i] = (uint32_t)((voltageData.cellVoltage[i] * 1000.0f) + 0.5f);
     }
 
-    //Currents to ints
-    int32_t currentMa = (int32_t)(currentData.packCurrent * 1000.0f);
-    char currentSign;
-    uint32_t currentMagnitudeMa;
+    // Convert voltage fault state to a UART message
+    const char *faultString = "OK";
+    uint8_t faultCell = 0U;
 
-    if (currentMa < 0)
+    if (faultData.fault == BMS_CELL_UNDERVOLTAGE)
     {
-        currentSign = '-';
-        currentMagnitudeMa = (uint32_t)(-1*currentMa);
+        faultString = "UNDERVOLTAGE";
+        faultCell = faultData.faultCellIndex + 1U;
     }
-    else
+    else if (faultData.fault == BMS_CELL_OVERVOLTAGE)
     {
-    	currentSign = '+';
-        currentMagnitudeMa = (uint32_t)currentMa;
+        faultString = "OVERVOLTAGE";
+        faultCell = faultData.faultCellIndex + 1U;
     }
-
-    //SOC to int
-    uint32_t socTenths = (uint32_t)((socData.socPercent * 10.0f) + 0.5f);
+    else if (faultData.fault == BMS_VOLTAGE_DATA_INVALID)
+    {
+        faultString = "DATA INVALID";
+    }
 
     return snprintf(
         buffer,
         bufferSize,
-
         "PACK: %lu.%03lu V | "
         "CELLS: "
         "%lu.%03lu "
@@ -533,45 +514,28 @@ int BMS_App_FormatTelemetry( char *buffer, unsigned int bufferSize)
         "%lu.%03lu "
         "%lu.%03lu "
         "%lu.%03lu V | "
-        "CURRENT: %c%lu.%03lu A | "
-        "SOC: %lu.%01lu %% | "
-        "VALID[V:%u I:%u SOC:%u]\r\n",
-
+        "FAULT: %s | "
+        "CELL: %u | "
+        "VALID: %u\r\n",
         (unsigned long)(packMv / 1000U),
         (unsigned long)(packMv % 1000U),
-
         (unsigned long)(cellMv[0] / 1000U),
         (unsigned long)(cellMv[0] % 1000U),
-
         (unsigned long)(cellMv[1] / 1000U),
         (unsigned long)(cellMv[1] % 1000U),
-
         (unsigned long)(cellMv[2] / 1000U),
         (unsigned long)(cellMv[2] % 1000U),
-
         (unsigned long)(cellMv[3] / 1000U),
         (unsigned long)(cellMv[3] % 1000U),
-
         (unsigned long)(cellMv[4] / 1000U),
         (unsigned long)(cellMv[4] % 1000U),
-
         (unsigned long)(cellMv[5] / 1000U),
         (unsigned long)(cellMv[5] % 1000U),
-
         (unsigned long)(cellMv[6] / 1000U),
         (unsigned long)(cellMv[6] % 1000U),
-
-        currentSign,
-
-        (unsigned long)(currentMagnitudeMa / 1000U),
-        (unsigned long)(currentMagnitudeMa % 1000U),
-
-        (unsigned long)(socTenths / 10U),
-        (unsigned long)(socTenths % 10U),
-
-        voltageData.valid ? 1U : 0U,
-        currentData.valid ? 1U : 0U,
-        socData.valid ? 1U : 0U);
+        faultString,
+        faultCell,
+        voltageData.valid ? 1U : 0U);
 }
 
 /* ===================== Data Access ===================== */
