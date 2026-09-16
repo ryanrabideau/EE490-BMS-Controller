@@ -25,6 +25,7 @@
 #include "L9963E_utils.h"
 #include "bms_app.h"
 #include <stdint.h>
+#include "THERMISTOR.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
