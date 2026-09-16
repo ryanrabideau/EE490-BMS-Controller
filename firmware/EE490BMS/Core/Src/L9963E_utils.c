@@ -207,7 +207,7 @@ uint8_t L9963E_utils_read_cells(uint8_t read_gpio)
     status = L9963E_DRV_burst_cmd(&(h9l.drv_handle), 0x1, _0x7BBurstCmd, &burst3, L9963E_BURST_0x7B_LEN, 100);
 
     //Convert to millivolts and store
-    vcells[0] = burst1._0x78.Frame1_14[0].VCell* 89e-3f;
+    vcells[0] = (burst1._0x78.Frame1_14[0].VCell* 89e-3f) + 1190;
     vcells[1] = burst1._0x78.Frame1_14[1].VCell* 89e-3f;
     vcells[2] = burst1._0x78.Frame1_14[2].VCell* 89e-3f;
     vcells[3] = burst1._0x78.Frame1_14[3].VCell* 89e-3f;

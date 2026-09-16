@@ -123,7 +123,9 @@ int main(void)
   int telemetryLength;
   uint32_t adcBuffer[4] = {0};	//0 is shunt current, 1-3 is temp
   float current = 0;
-  float temp1, temp2, temp3;
+  float temp1 = 0;
+  float temp2 = 0;
+  float temp3 = 0;
 
 
   // Flash LED on board for reference and startup
@@ -158,6 +160,7 @@ int main(void)
 //	  HAL_Delay(50);
 //  }
 
+  HAL_NVIC_DisableIRQ(DMA2_Stream0_IRQn);
   HAL_ADC_Start_DMA(&hadc1, adcBuffer, 4);	//Start ADC with DMA of size 4
 
   // Super loop
@@ -202,7 +205,15 @@ int main(void)
       }
 
       //Keep Coulomb-counter servicing within the intended approximately one-second interval.
-      HAL_Delay(10);
+	  HAL_GPIO_WritePin(SW_EVEN_GPIO_Port, SW_EVEN_Pin, GPIO_PIN_SET);
+	  HAL_Delay(25);
+	  HAL_GPIO_WritePin(SW_EVEN_GPIO_Port, SW_EVEN_Pin, GPIO_PIN_RESET);
+	  HAL_Delay(25);
+
+	  HAL_GPIO_WritePin(SW_ODD_GPIO_Port, SW_ODD_Pin, GPIO_PIN_SET);
+	  HAL_Delay(25);
+	  HAL_GPIO_WritePin(SW_ODD_GPIO_Port, SW_ODD_Pin, GPIO_PIN_RESET);
+	  HAL_Delay(25);
   }
 
   /* USER CODE END 2 */
@@ -331,7 +342,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.NbrOfConversion = 4;
   hadc1.Init.DMAContinuousRequests = ENABLE;
-  hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     Error_Handler();
