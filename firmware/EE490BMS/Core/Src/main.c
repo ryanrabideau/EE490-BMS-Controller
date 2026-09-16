@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "L9963E_utils.h"
 #include "bms_app.h"
+#include <stdint.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -43,6 +44,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
 
 SPI_HandleTypeDef hspi2;
 
@@ -64,6 +66,7 @@ const osThreadAttr_t defaultTask_attributes = {
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_SPI2_Init(void);
@@ -108,6 +111,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_TIM1_Init();
   MX_SPI2_Init();
@@ -116,6 +120,10 @@ int main(void)
 
   char telemetryBuffer[256];
   int telemetryLength;
+  uint32_t adcBuffer[4] = {0};	//0 is shunt current, 1-3 is temp
+  float current = 0;
+  float temp1, temp2, temp3;
+
 
   // Flash LED on board for reference and startup
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
@@ -130,14 +138,6 @@ int main(void)
 
   //Known SOC starting value
   BMS_App_SetSocReference(80.0f);
-
-  HAL_ADC_Start(&hadc1);
-  HAL_ADC_PollForConversion(&hadc1, 5);
-  HAL_ADC_GetValue(&hadc1);
-
-
-  int adc_val = 0;
-  float current = 0;
 
   HAL_GPIO_WritePin(SW_EVEN_GPIO_Port, SW_EVEN_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(SW_ODD_GPIO_Port, SW_ODD_Pin, GPIO_PIN_RESET);
@@ -157,20 +157,15 @@ int main(void)
 //	  HAL_Delay(50);
 //  }
 
+  HAL_ADC_Start_DMA(&hadc1, adcBuffer, 4);	//Start ADC with DMA of size 4
 
   // Super loop
   while (1)
   {
-	  HAL_ADC_Start(&hadc1); // Start ADC conversion
-
-	  // Wait for the conversion to finish with a 20ms timeout
-	  if (HAL_ADC_PollForConversion(&hadc1, 20) == HAL_OK)
-	  {
-	    adc_val = HAL_ADC_GetValue(&hadc1); // Read the digital value
-	    current = (adc_val/(4096e0f))*330;	// To mA
-	  }
-
-	  HAL_ADC_Stop(&hadc1); // Stop ADC
+	  current = (adcBuffer[0]/(4096e0f))*330;	// To mA
+	  temp1 = Thermistor_ReadF(adcBuffer[1]);
+	  temp2 = Thermistor_ReadF(adcBuffer[2]);
+	  temp3 = Thermistor_ReadF(adcBuffer[3]);
 
 	  BMS_App_UpdateAll();
 
@@ -325,15 +320,15 @@ static void MX_ADC1_Init(void)
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc1.Init.ScanConvMode = DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.ScanConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 1;
-  hadc1.Init.DMAContinuousRequests = DISABLE;
-  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc1.Init.NbrOfConversion = 4;
+  hadc1.Init.DMAContinuousRequests = ENABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     Error_Handler();
@@ -344,6 +339,33 @@ static void MX_ADC1_Init(void)
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = 1;
   sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_4;
+  sConfig.Rank = 2;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_6;
+  sConfig.Rank = 3;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_7;
+  sConfig.Rank = 4;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -468,6 +490,22 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 2 */
 
   /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA2_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
 
 }
 

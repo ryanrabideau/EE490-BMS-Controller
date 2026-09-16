@@ -8,6 +8,7 @@ C_SRCS += \
 ../Core/Src/L9963E.c \
 ../Core/Src/L9963E_drv.c \
 ../Core/Src/L9963E_utils.c \
+../Core/Src/THERMISTOR.c \
 ../Core/Src/bms_app.c \
 ../Core/Src/freertos.c \
 ../Core/Src/main.c \
@@ -23,6 +24,7 @@ OBJS += \
 ./Core/Src/L9963E.o \
 ./Core/Src/L9963E_drv.o \
 ./Core/Src/L9963E_utils.o \
+./Core/Src/THERMISTOR.o \
 ./Core/Src/bms_app.o \
 ./Core/Src/freertos.o \
 ./Core/Src/main.o \
@@ -38,6 +40,7 @@ C_DEPS += \
 ./Core/Src/L9963E.d \
 ./Core/Src/L9963E_drv.d \
 ./Core/Src/L9963E_utils.d \
+./Core/Src/THERMISTOR.d \
 ./Core/Src/bms_app.d \
 ./Core/Src/freertos.d \
 ./Core/Src/main.d \
@@ -57,7 +60,7 @@ Core/Src/%.o Core/Src/%.su Core/Src/%.cyclo: ../Core/Src/%.c Core/Src/subdir.mk
 clean: clean-Core-2f-Src
 
 clean-Core-2f-Src:
-	-$(RM) ./Core/Src/L9963E.cyclo ./Core/Src/L9963E.d ./Core/Src/L9963E.o ./Core/Src/L9963E.su ./Core/Src/L9963E_drv.cyclo ./Core/Src/L9963E_drv.d ./Core/Src/L9963E_drv.o ./Core/Src/L9963E_drv.su ./Core/Src/L9963E_utils.cyclo ./Core/Src/L9963E_utils.d ./Core/Src/L9963E_utils.o ./Core/Src/L9963E_utils.su ./Core/Src/bms_app.cyclo ./Core/Src/bms_app.d ./Core/Src/bms_app.o ./Core/Src/bms_app.su ./Core/Src/freertos.cyclo ./Core/Src/freertos.d ./Core/Src/freertos.o ./Core/Src/freertos.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32_if.cyclo ./Core/Src/stm32_if.d ./Core/Src/stm32_if.o ./Core/Src/stm32_if.su ./Core/Src/stm32f4xx_hal_msp.cyclo ./Core/Src/stm32f4xx_hal_msp.d ./Core/Src/stm32f4xx_hal_msp.o ./Core/Src/stm32f4xx_hal_msp.su ./Core/Src/stm32f4xx_hal_timebase_tim.cyclo ./Core/Src/stm32f4xx_hal_timebase_tim.d ./Core/Src/stm32f4xx_hal_timebase_tim.o ./Core/Src/stm32f4xx_hal_timebase_tim.su ./Core/Src/stm32f4xx_it.cyclo ./Core/Src/stm32f4xx_it.d ./Core/Src/stm32f4xx_it.o ./Core/Src/stm32f4xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f4xx.cyclo ./Core/Src/system_stm32f4xx.d ./Core/Src/system_stm32f4xx.o ./Core/Src/system_stm32f4xx.su
+	-$(RM) ./Core/Src/L9963E.cyclo ./Core/Src/L9963E.d ./Core/Src/L9963E.o ./Core/Src/L9963E.su ./Core/Src/L9963E_drv.cyclo ./Core/Src/L9963E_drv.d ./Core/Src/L9963E_drv.o ./Core/Src/L9963E_drv.su ./Core/Src/L9963E_utils.cyclo ./Core/Src/L9963E_utils.d ./Core/Src/L9963E_utils.o ./Core/Src/L9963E_utils.su ./Core/Src/THERMISTOR.cyclo ./Core/Src/THERMISTOR.d ./Core/Src/THERMISTOR.o ./Core/Src/THERMISTOR.su ./Core/Src/bms_app.cyclo ./Core/Src/bms_app.d ./Core/Src/bms_app.o ./Core/Src/bms_app.su ./Core/Src/freertos.cyclo ./Core/Src/freertos.d ./Core/Src/freertos.o ./Core/Src/freertos.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32_if.cyclo ./Core/Src/stm32_if.d ./Core/Src/stm32_if.o ./Core/Src/stm32_if.su ./Core/Src/stm32f4xx_hal_msp.cyclo ./Core/Src/stm32f4xx_hal_msp.d ./Core/Src/stm32f4xx_hal_msp.o ./Core/Src/stm32f4xx_hal_msp.su ./Core/Src/stm32f4xx_hal_timebase_tim.cyclo ./Core/Src/stm32f4xx_hal_timebase_tim.d ./Core/Src/stm32f4xx_hal_timebase_tim.o ./Core/Src/stm32f4xx_hal_timebase_tim.su ./Core/Src/stm32f4xx_it.cyclo ./Core/Src/stm32f4xx_it.d ./Core/Src/stm32f4xx_it.o ./Core/Src/stm32f4xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f4xx.cyclo ./Core/Src/system_stm32f4xx.d ./Core/Src/system_stm32f4xx.o ./Core/Src/system_stm32f4xx.su
 
 .PHONY: clean-Core-2f-Src
 

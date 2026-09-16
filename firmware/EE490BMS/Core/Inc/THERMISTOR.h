@@ -3,9 +3,7 @@
 
 #include "stm32f4xx_hal.h"
 
-// Reads one ADC channel/rank and converts it to temperature in Fahrenheit.
-// Call this once per rank, in the same order your ranks are configured in CubeMX.
-// Does NOT call HAL_ADC_Start()/Stop() - caller manages the conversion sequence.
-float Thermistor_ReadF(ADC_HandleTypeDef *hadc, uint32_t timeout);
+// Converts 12-bit ADC of thermistor divider to temperature in degrees F
+float Thermistor_ReadF(uint32_t raw);
 
 #endif /* THERMISTOR_H */

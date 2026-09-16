@@ -8,11 +8,9 @@
 #define T0          298.15f
 #define BETA        3435.0f
 
-float Thermistor_ReadF(ADC_HandleTypeDef *hadc, uint32_t timeout)
+//Convert ADC code to temperature float
+float Thermistor_ReadF(uint32_t raw)
 {
-    HAL_ADC_PollForConversion(hadc, timeout);
-    uint32_t raw = HAL_ADC_GetValue(hadc);
-
     float vadc = (raw / ADC_MAX) * VREF;
 
     // Guard against divide-by-zero / log(0) at the rails
