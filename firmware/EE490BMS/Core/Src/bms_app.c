@@ -41,6 +41,9 @@ static BMS_CoulombData_t coulombData;
 static BMS_SocData_t socData;
 static BMS_FaultData_t faultData;
 
+static float externalCurrentMa = 0.0f;
+static float externalTempF[3] = {0.0f, 0.0f, 0.0f};
+
 //Tracks whether the L9963E current conversion chain has already been successfully enabled.
 static bool currentSenseInitialized = false;
 
@@ -261,6 +264,19 @@ bool BMS_App_UpdateCurrent(void)
     return true;
 }
 
+void BMS_App_SetExternalMeasurements(
+    float currentMa,
+    float temp1F,
+    float temp2F,
+    float temp3F)
+{
+    externalCurrentMa = currentMa;
+
+    externalTempF[0] = temp1F;
+    externalTempF[1] = temp2F;
+    externalTempF[2] = temp3F;
+}
+
 bool BMS_App_UpdateCoulombCount(void)
 {
     L9963E_CoulombData_t rawCoulombData;
@@ -418,10 +434,8 @@ bool BMS_App_UpdateSoc(void)
 bool BMS_App_UpdateAll(void)
 {
     bool voltageOk = BMS_App_UpdateVoltages();
-    bool temperatureOk = BMS_App_UpdateTemperatureInputs();
-    bool currentOk = BMS_App_UpdateCurrent();
 
-    return voltageOk && temperatureOk && currentOk;
+    return voltageOk;
 }
 
 void BMS_App_CheckVoltageFaults(void)
@@ -486,16 +500,8 @@ int BMS_App_FormatTelemetry(char *buffer, unsigned int bufferSize)
         cellMv[i] = (uint32_t)((voltageData.cellVoltage[i] * 1000.0f) + 0.5f);
     }
 
-    // Temperature input voltages to millivolts
-    uint32_t tempMv[BMS_TEMP_CHANNEL_COUNT];
-
-    for (uint8_t i = 0U; i < BMS_TEMP_CHANNEL_COUNT; i++)
-    {
-        tempMv[i] = (uint32_t)((temperatureData.gpioVoltage[i] * 1000.0f) + 0.5f);
-    }
-
-    // Current to milliamps
-    int32_t currentMa = (int32_t)(currentData.packCurrent * 1000.0f);
+    // External ADC current measurement in milliamps
+    int32_t currentMa = (int32_t)externalCurrentMa;
     char currentSign = '+';
     uint32_t currentMagnitudeMa;
 
@@ -507,6 +513,14 @@ int BMS_App_FormatTelemetry(char *buffer, unsigned int bufferSize)
     else
     {
         currentMagnitudeMa = (uint32_t)currentMa;
+    }
+
+    // External thermistor temperatures in Fahrenheit
+    int32_t tempF[3];
+
+    for (uint8_t i = 0U; i < 3U; i++)
+    {
+        tempF[i] = (int32_t)externalTempF[i];
     }
 
     // Convert voltage fault state to a UART message
@@ -540,18 +554,11 @@ int BMS_App_FormatTelemetry(char *buffer, unsigned int bufferSize)
         "%lu.%03lu "
 		"%lu.%03lu "
 		"%lu.%03lu V | "
-		"TEMP V: "
-		"%lu.%03lu "
-		"%lu.%03lu "
-		"%lu.%03lu "
-		"%lu.%03lu "
-		"%lu.%03lu "
-		"%lu.%03lu "
-		"%lu.%03lu V | "
-		"CURRENT: %c%lu.%03lu A | "
+		"TEMP: %ld F %ld F %ld F | "
+		"CURRENT: %c%lu mA | "
 		"FAULT: %s | "
 		"CELL: %u | "
-		"VALID[V:%u T:%u I:%u]\r\n",
+		"VALID[V:%u]\r\n",
         (unsigned long)(packMv / 1000U),
         (unsigned long)(packMv % 1000U),
         (unsigned long)(cellMv[0] / 1000U),
@@ -569,30 +576,16 @@ int BMS_App_FormatTelemetry(char *buffer, unsigned int bufferSize)
 		(unsigned long)(cellMv[6] / 1000U),
 		(unsigned long)(cellMv[6] % 1000U),
 
-		(unsigned long)(tempMv[0] / 1000U),
-		(unsigned long)(tempMv[0] % 1000U),
-		(unsigned long)(tempMv[1] / 1000U),
-		(unsigned long)(tempMv[1] % 1000U),
-		(unsigned long)(tempMv[2] / 1000U),
-		(unsigned long)(tempMv[2] % 1000U),
-		(unsigned long)(tempMv[3] / 1000U),
-		(unsigned long)(tempMv[3] % 1000U),
-		(unsigned long)(tempMv[4] / 1000U),
-		(unsigned long)(tempMv[4] % 1000U),
-		(unsigned long)(tempMv[5] / 1000U),
-		(unsigned long)(tempMv[5] % 1000U),
-		(unsigned long)(tempMv[6] / 1000U),
-		(unsigned long)(tempMv[6] % 1000U),
+		(long)tempF[0],
+		(long)tempF[1],
+		(long)tempF[2],
 
 		currentSign,
-		(unsigned long)(currentMagnitudeMa / 1000U),
-		(unsigned long)(currentMagnitudeMa % 1000U),
+		(unsigned long)currentMagnitudeMa,
 
 		faultString,
 		faultCell,
-		voltageData.valid ? 1U : 0U,
-		temperatureData.valid ? 1U : 0U,
-		currentData.valid ? 1U : 0U);
+		voltageData.valid ? 1U : 0U);
 }
 
 /* ===================== Data Access ===================== */

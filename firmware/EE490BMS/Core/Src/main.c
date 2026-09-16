@@ -168,6 +168,8 @@ int main(void)
 	  temp2 = Thermistor_ReadF(adcBuffer[2]);
 	  temp3 = Thermistor_ReadF(adcBuffer[3]);
 
+	  BMS_App_SetExternalMeasurements(current, temp1, temp2, temp3);
+
 	  BMS_App_UpdateAll();
 
 	  const BMS_FaultData_t *faultData = BMS_App_GetFaultData();

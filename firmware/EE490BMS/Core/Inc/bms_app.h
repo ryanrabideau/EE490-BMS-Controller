@@ -178,6 +178,12 @@ bool BMS_App_UpdateTemperatureInputs(void);
 
 bool BMS_App_UpdateCurrent(void);
 
+void BMS_App_SetExternalMeasurements(
+    float currentMa,
+    float temp1F,
+    float temp2F,
+    float temp3F);
+
 bool BMS_App_UpdateCoulombCount(void);
 
 bool BMS_App_SetSocReference(float initialSocPercent);
