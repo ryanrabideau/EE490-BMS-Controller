@@ -166,10 +166,10 @@ int main(void)
   // Super loop
   while (1)
   {
-	  current = (adcBuffer[0]/(4096e0f))*330;	// To mA
-	  temp1 = Thermistor_ReadF(adcBuffer[1]);
-	  temp2 = Thermistor_ReadF(adcBuffer[2]);
-	  temp3 = Thermistor_ReadF(adcBuffer[3]);
+	  current = (adcBuffer[0]/(4096e0f))*6000;	// To mA
+	  temp1 = Thermistor_ReadF(adcBuffer[1], 1);
+	  temp2 = Thermistor_ReadF(adcBuffer[2], 0);
+	  temp3 = Thermistor_ReadF(adcBuffer[3], 0);
 
 	  BMS_App_SetExternalMeasurements(current, temp1, temp2, temp3);
 
@@ -177,7 +177,8 @@ int main(void)
 
 	  const BMS_FaultData_t *faultData = BMS_App_GetFaultData();
 
-	  if ((faultData != NULL) && !faultData->faultActive)
+	  if ((faultData != NULL) && !faultData->faultActive &&
+			  temp1 < 122 && temp2 < 122 && temp3 < 122 && current < 2000)
 	  {
 	      HAL_GPIO_WritePin(MASTER_SWITCH_GPIO_Port, MASTER_SWITCH_Pin, GPIO_PIN_SET);
 	  }

@@ -9,7 +9,7 @@
 #define BETA        3435.0f
 
 //Convert ADC code to temperature float
-float Thermistor_ReadF(uint32_t raw)
+float Thermistor_ReadF(uint32_t raw, int offsetFlag)
 {
     float vadc = (raw / ADC_MAX) * VREF;
 
@@ -22,5 +22,8 @@ float Thermistor_ReadF(uint32_t raw)
     float tempK = 1.0f / ( (1.0f / T0) + (1.0f / BETA) * logf(r_therm / R0) );
     float tempF = (tempK - 273.15f) * 9.0f / 5.0f + 32.0f;
 
+    if (offsetFlag) {
+    	return tempF-7;
+    }
     return tempF;
 }

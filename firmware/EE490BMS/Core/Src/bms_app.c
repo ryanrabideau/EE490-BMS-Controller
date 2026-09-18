@@ -31,7 +31,7 @@
  * Final values should be verified against the
  * selected battery cell datasheet.
  */
-#define BMS_CELL_UV_THRESHOLD_V 2.50f
+#define BMS_CELL_UV_THRESHOLD_V 2.75f
 #define BMS_CELL_OV_THRESHOLD_V 4.20f
 
 static BMS_VoltageData_t voltageData;
