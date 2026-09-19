@@ -150,14 +150,14 @@ int main(void)
 
 //  while (1) {
 //	  HAL_GPIO_WritePin(SW_EVEN_GPIO_Port, SW_EVEN_Pin, GPIO_PIN_SET);
-//	  HAL_Delay(50);
+//	  HAL_Delay(10);
 //	  HAL_GPIO_WritePin(SW_EVEN_GPIO_Port, SW_EVEN_Pin, GPIO_PIN_RESET);
-//	  HAL_Delay(50);
+//	  HAL_Delay(10);
 //
 //	  HAL_GPIO_WritePin(SW_ODD_GPIO_Port, SW_ODD_Pin, GPIO_PIN_SET);
-//	  HAL_Delay(50);
+//	  HAL_Delay(10);
 //	  HAL_GPIO_WritePin(SW_ODD_GPIO_Port, SW_ODD_Pin, GPIO_PIN_RESET);
-//	  HAL_Delay(50);
+//	  HAL_Delay(10);
 //  }
 
   HAL_NVIC_DisableIRQ(DMA2_Stream0_IRQn);
@@ -178,7 +178,7 @@ int main(void)
 	  const BMS_FaultData_t *faultData = BMS_App_GetFaultData();
 
 	  if ((faultData != NULL) && !faultData->faultActive &&
-			  temp1 < 122 && temp2 < 122 && temp3 < 122 && current < 2000)
+			  temp1 < 85 && temp2 < 85 && temp3 < 85 && current < 2000)
 	  {
 	      HAL_GPIO_WritePin(MASTER_SWITCH_GPIO_Port, MASTER_SWITCH_Pin, GPIO_PIN_SET);
 	  }
@@ -207,14 +207,14 @@ int main(void)
 
       //Keep Coulomb-counter servicing within the intended approximately one-second interval.
 	  HAL_GPIO_WritePin(SW_EVEN_GPIO_Port, SW_EVEN_Pin, GPIO_PIN_SET);
-	  HAL_Delay(25);
+	  HAL_Delay(10);
 	  HAL_GPIO_WritePin(SW_EVEN_GPIO_Port, SW_EVEN_Pin, GPIO_PIN_RESET);
-	  HAL_Delay(25);
+	  HAL_Delay(10);
 
 	  HAL_GPIO_WritePin(SW_ODD_GPIO_Port, SW_ODD_Pin, GPIO_PIN_SET);
-	  HAL_Delay(25);
+	  HAL_Delay(10);
 	  HAL_GPIO_WritePin(SW_ODD_GPIO_Port, SW_ODD_Pin, GPIO_PIN_RESET);
-	  HAL_Delay(25);
+	  HAL_Delay(10);
   }
 
   /* USER CODE END 2 */
