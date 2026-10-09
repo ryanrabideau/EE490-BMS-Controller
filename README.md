@@ -1,111 +1,196 @@
-# EE 490 - 24V Li-ion Battery Management System
+# 24V Li-Ion Battery Management System
 
-This repository contains the hardware and firmware development for our EE 490 senior design project: a Battery Management System (BMS) for a custom **2P7S lithium-ion battery pack**.
+Senior electrical engineering design project implementing a Battery Management System (BMS) for a custom **2P7S lithium-ion battery pack**. The completed prototype uses an **STM32F411RE** microcontroller and **ST L9963E** battery-monitoring AFE to monitor battery conditions, provide fault protection, perform active cell balancing, and transmit real-time telemetry to a LabVIEW PC interface.
 
-The system uses an **STM32F411RE** microcontroller with an **ST L9963E** battery monitoring AFE and L9963T interface. The goal is to monitor individual cell voltages, pack current, temperature, and state of charge while providing fault detection, UART telemetry, and active cell balancing.
+## Project Overview
 
-## System Overview
+The BMS was developed for a nominal **25.2 V, 5.0 Ah** lithium-ion battery pack constructed from Samsung INR18650-25R cells. Seven series-connected cell groups are monitored individually, with two cells connected in parallel per group.
 
-- **Battery configuration:** 2P7S
-- **Cells:** Samsung INR18650-25R, 2.5 Ah per cell
-- **Pack capacity:** 5.0 Ah
-- **Nominal pack voltage:** 25.2 V
-- **MCU:** STM32F411RE
-- **Battery monitoring AFE:** ST L9963E
-- **AFE interface:** ST L9963T
-- **MCU/AFE communication:** SPI2
-- **Telemetry:** USART2 UART
-- **Firmware:** C using STM32 HAL
-- **Balancing:** Chained switched-capacitor active balancing
+The completed system integrates battery monitoring, embedded firmware, protection logic, active balancing, PC telemetry, battery-pack construction, and a custom mechanical enclosure into a functional prototype.
+
+### Key Features
+
+- 2P7S lithium-ion battery pack
+- Seven individual cell-group voltage measurements
+- Pack-current measurement
+- Three battery temperature measurements
+- Cell undervoltage and overvoltage protection
+- Pack overcurrent protection
+- Battery overtemperature protection
+- Master relay control for battery protection
+- Chained switched-capacitor active cell balancing
+- Real-time UART telemetry
+- LabVIEW PC monitoring interface
+- Custom battery and electronics enclosures
+
+## System Hardware
+
+| Component | Description |
+| --- | --- |
+| Battery | 2P7S Samsung INR18650-25R Li-ion pack |
+| Nominal Voltage | 25.2 V |
+| Maximum Voltage | 29.4 V |
+| Pack Capacity | 5.0 Ah |
+| Microcontroller | STM32F411RE |
+| Battery Monitor | ST L9963E |
+| AFE Interface | ST L9963T |
+| MCU/AFE Communication | SPI2 |
+| PC Communication | USART2 UART |
+| Firmware | C using STM32 HAL |
+| PC Interface | LabVIEW |
+| Balancing | Chained switched-capacitor active balancing |
+
+## System Architecture
+
+The **L9963E battery-monitoring IC** measures the seven series cell-group voltages and communicates with the STM32F411RE through the L9963T interface. Additional STM32 ADC channels acquire pack-current and thermistor measurements.
+
+The STM32 processes the battery measurements, evaluates protection conditions, controls the master relay, operates the active-balancing circuitry, and transmits battery data through USART2 to the LabVIEW PC interface.
+
+The embedded application uses a polling-based superloop rather than an RTOS scheduler.
+
+## Battery Monitoring and Protection
+
+The firmware monitors:
+
+- Seven cell-group voltages
+- Overall pack voltage
+- Pack current
+- Three battery temperatures
+
+Battery measurements are continuously evaluated by the protection logic. The master relay is enabled only when the monitored battery conditions satisfy the implemented safety limits. A detected voltage, current, temperature, or invalid-voltage condition disables the relay.
+
+Cell-voltage protection includes both undervoltage and overvoltage detection. Pack-current and battery-temperature limits provide additional protection for the completed prototype.
+
+## Active Cell Balancing
+
+The system uses a **chained switched-capacitor active-balancing topology**. Capacitors are alternately connected between adjacent cell groups using solid-state switching, allowing charge to move between cells with different voltage levels.
+
+The final prototype demonstrated active balancing during system testing and the final project demonstration. The implemented topology successfully transferred charge between adjacent cell groups, although the balancing current was relatively low and could be improved in a future design.
+
+## UART Telemetry and LabVIEW Interface
+
+The STM32 transmits battery information to a PC over **USART2 at 115200 baud**.
+
+The telemetry includes:
+
+- Pack voltage
+- Seven cell-group voltages
+- Three temperature measurements
+- Pack current
+- Fault status
+- Faulted cell information
+- Measurement validity information
+
+The LabVIEW interface receives and parses the serial data and provides real-time visualization of the battery measurements.
+
+Example telemetry from the completed system:
+
+```text
+PACK: 27.470 V | CELLS: 3.828 3.947 3.953 3.929 3.930 3.943 3.940 V | TEMP: 73 F 73 F 89 F | CURRENT: +7 mA | FAULT: OK | CELL: 0 | VALID[V:1]
+```
 
 ## Firmware
 
-The STM32 firmware is located in [`firmware/EE490BMS/`](firmware/EE490BMS/).
-
-Communication with the L9963E is handled through the L9963T interface. The low-level driver handles register communication with the AFE, while the application layer processes the measurements and keeps track of the overall BMS state.
-
-The firmware currently supports:
-
-- L9963E initialization and addressing
-- Register reads and writes
-- Cell-voltage acquisition
-- Pack-voltage calculation
-- Minimum and maximum cell-voltage tracking
-- Cell-to-cell voltage delta calculation
-- Cell undervoltage and overvoltage detection
-- Pack-current measurement using the L9963E current ADC
-- Coulomb counting
-- State-of-charge estimation
-- Raw GPIO acquisition for the thermistors
-- UART telemetry
-- Communication and measurement timeouts
-- Validity tracking for voltage, current, Coulomb-counting, and SoC data
-
-The main application currently runs as a simple superloop with approximately one update per second. FreeRTOS files are still present in the generated STM32 project, but the BMS application itself does not currently use the RTOS scheduler.
-
-## Current Progress
-
-Communication between the STM32F411RE and L9963E is working, including device addressing and register reads/writes. Cell-voltage measurements have also been read successfully from the current four-cell bench setup.
-
-The higher-level firmware for the final 7S system is now in place. This includes voltage processing, voltage fault detection, current sensing, Coulomb counting, SoC estimation, and UART telemetry. The current and Coulomb-counting code still needs to be validated on the complete hardware setup.
-
-The final pack will use seven series cell groups, but the current bench configuration only enables **CELL1, CELL2, CELL13, and CELL14** on the L9963E. The final seven-cell channel mapping will be confirmed when the complete pack is connected.
-
-Current sensing is implemented using the L9963E's 18-bit current ADC. The firmware currently contains a temporary **0.1 mΩ shunt value**, which will be replaced once the final shunt resistance is confirmed. Current polarity also needs to be verified on the physical hardware before the SoC calculation is considered final.
-
-Temperature acquisition is partially implemented. The firmware can read the seven GPIO channels intended for the thermistors and convert the raw ADC values to voltages, but the final voltage-to-temperature conversion has not been added yet.
-
-Active balancing is also still under development. The planned system uses a chained switched-capacitor topology, with the balancing hardware controlled by the STM32.
-
-## UART Telemetry
-
-The latest BMS measurements can be formatted and transmitted over USART2 for debugging and monitoring from a PC.
-
-Example output:
-
-```text
-PACK: 25.184 V | CELLS: 3.598 3.602 3.596 3.600 3.595 3.601 3.592 V | CURRENT: -1.243 A | SOC: 81.7 % | VALID[V:1 I:1 SOC:1]
-```
-
-The validity flags make it possible to distinguish valid measurements from failed or incomplete AFE communication.
-
-## Repository Structure
-
-- [`firmware/`](firmware/) - STM32 firmware
-  - [`EE490BMS/`](firmware/EE490BMS/) - Main STM32CubeIDE project
-  - [`Core/Inc/`](firmware/EE490BMS/Core/Inc/) - Application and driver headers
-  - [`Core/Src/`](firmware/EE490BMS/Core/Src/) - Application, driver, and STM32 source files
-  - [`EE490BMS.ioc`](firmware/EE490BMS/EE490BMS.ioc) - STM32CubeMX configuration
-- [`hardware/`](hardware/) - Battery pack, enclosure, and mechanical CAD
-  - [`STL Exports/`](hardware/STL%20Exports/) - Exported 3D-printable parts
-  - [`Vendor/`](hardware/Vendor/) - Vendor component models
-- [`docs/`](docs/) - Project documentation
-- [`pc_interface/`](pc_interface/) - PC-side interface development
-
-## Main Firmware Files
-
-[`bms_app.c`](firmware/EE490BMS/Core/Src/bms_app.c) and [`bms_app.h`](firmware/EE490BMS/Core/Inc/bms_app.h) contain the higher-level BMS logic, including voltage processing, current measurement, Coulomb counting, SoC estimation, fault detection, and telemetry.
-
-[`L9963E_utils.c`](firmware/EE490BMS/Core/Src/L9963E_utils.c) and [`L9963E_utils.h`](firmware/EE490BMS/Core/Inc/L9963E_utils.h) provide the interface between the application layer and the L9963E driver.
-
-[`L9963E.c`](firmware/EE490BMS/Core/Src/L9963E.c) and [`L9963E_drv.c`](firmware/EE490BMS/Core/Src/L9963E_drv.c) contain the lower-level L9963E functionality and communication.
-
-[`stm32_if.c`](firmware/EE490BMS/Core/Src/stm32_if.c) provides the STM32 hardware interface used by the L9963E driver.
-
-[`main.c`](firmware/EE490BMS/Core/Src/main.c) contains the STM32 initialization and main BMS superloop.
-
-## Building the Firmware
-
-The firmware is developed using **STM32CubeIDE** and **STM32CubeMX**.
-
-The CubeIDE project is located in:
+The STM32 firmware is located in:
 
 [`firmware/EE490BMS/`](firmware/EE490BMS/)
 
-Import the project into STM32CubeIDE and build the Debug configuration. The current shared firmware builds with **0 errors and 0 warnings**.
+The primary firmware files include:
 
-## Remaining Work
+- [`main.c`](firmware/EE490BMS/Core/Src/main.c) - STM32 initialization and main BMS superloop
+- [`bms_app.c`](firmware/EE490BMS/Core/Src/bms_app.c) - Higher-level BMS measurement and protection processing
+- [`bms_app.h`](firmware/EE490BMS/Core/Inc/bms_app.h) - BMS application definitions
+- [`L9963E_utils.c`](firmware/EE490BMS/Core/Src/L9963E_utils.c) - Application interface to the L9963E driver
+- [`L9963E.c`](firmware/EE490BMS/Core/Src/L9963E.c) - L9963E functionality
+- [`L9963E_drv.c`](firmware/EE490BMS/Core/Src/L9963E_drv.c) - Low-level L9963E communication
+- [`stm32_if.c`](firmware/EE490BMS/Core/Src/stm32_if.c) - STM32 hardware interface for the L9963E driver
+- [`EE490BMS.ioc`](firmware/EE490BMS/EE490BMS.ioc) - STM32CubeMX configuration
 
-The main remaining work is hardware integration and validation. This includes confirming the final seven-cell L9963E mapping, verifying the current shunt value and polarity, testing Coulomb-counting accuracy, validating SoC behavior during charge and discharge, completing the thermistor temperature conversion, and implementing the active-balancing control.
+The firmware was developed using **STM32CubeIDE** and **STM32CubeMX**.
 
-Mechanical work on the battery pack and control enclosure is also still in progress. Current SolidWorks assemblies and exported STL files can be found in the [`hardware/`](hardware/) directory.
+## PC Interface
+
+The LabVIEW PC interface is located in:
+
+[`pc_interface/`](pc_interface/)
+
+The interface receives UART telemetry from the STM32 and displays the battery measurements graphically for real-time monitoring.
+
+## Hardware and Mechanical Design
+
+Battery-pack and enclosure design files are located in:
+
+[`hardware/`](hardware/)
+
+This directory contains the mechanical CAD and exported STL files used for the battery and electronics enclosures.
+
+## Repository Structure
+
+```text
+EE490-BMS-Controller/
+├── firmware/
+│   └── EE490BMS/       STM32 firmware and CubeMX project
+├── hardware/           Battery-pack and enclosure CAD
+├── pc_interface/       LabVIEW PC interface
+├── docs/               Project documentation
+└── README.md
+```
+
+## My Contributions
+
+This was a four-person senior design project. My primary contributions focused on **embedded firmware integration, battery monitoring and protection, and system telemetry**.
+
+My work included:
+
+- STM32F411RE firmware development and integration
+- Cell-voltage acquisition and processing
+- Pack-current and temperature measurement integration
+- Battery fault-detection and protection logic
+- Master-relay control integration
+- USART2 telemetry implementation
+- Integration of battery measurements into the PC telemetry stream
+- Firmware debugging and hardware/software integration
+- Technical documentation and final project reporting
+
+## Team
+
+This project was completed as a four-person Kettering University senior electrical engineering design project by:
+
+- Ryan Rabideau
+- Michael Collins
+- Matthew Herber
+- Dillon Peterson
+
+The project combined embedded firmware, battery-management electronics, active-balancing circuitry, battery-pack construction, LabVIEW development, and mechanical design.
+
+## Project Results
+
+The completed prototype successfully integrated the major electrical, firmware, software, and mechanical subsystems into a functional battery-management system.
+
+The final system demonstrated:
+
+- Monitoring of all seven cell-group voltages
+- Pack-current and battery-temperature measurement
+- Battery fault detection and master-relay control
+- Real-time UART telemetry
+- LabVIEW battery-data visualization
+- Active cell balancing
+- Complete 2P7S battery-pack and enclosure integration
+
+The project provided hands-on experience with embedded systems, lithium-ion battery management, mixed-signal measurement, serial communication, hardware/software integration, system debugging, and multidisciplinary engineering design.
+
+## Limitations and Future Improvements
+
+State-of-charge estimation and display were investigated during firmware development but were not fully integrated and validated as part of the final system.
+
+Additional future improvements could include:
+
+- Completing and validating state-of-charge estimation
+- Increasing active-balancing current
+- Further calibration of the sensing circuitry
+- Additional controlled testing of protection conditions
+- Further refinement of the battery and electronics hardware
+
+## Documentation
+
+Additional project documentation is located in the [`docs/`](docs/) directory.
