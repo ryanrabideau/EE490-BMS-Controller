@@ -42,6 +42,10 @@ The completed system integrates battery monitoring, embedded firmware, protectio
 
 ## System Architecture
 
+<p align="center">
+  <img src="docs/images/bms_system_architecture.png" alt="Overall BMS system architecture" width="800">
+</p>
+
 The **L9963E battery-monitoring IC** measures the seven series cell-group voltages and communicates with the STM32F411RE through the L9963T interface. Additional STM32 ADC channels acquire pack-current and thermistor measurements.
 
 The STM32 processes the battery measurements, evaluates protection conditions, controls the master relay, operates the active-balancing circuitry, and transmits battery data through USART2 to the LabVIEW PC interface.
@@ -66,6 +70,14 @@ Cell-voltage protection includes both undervoltage and overvoltage detection. Pa
 The system uses a **chained switched-capacitor active-balancing topology**. Capacitors are alternately connected between adjacent cell groups using solid-state switching, allowing charge to move between cells with different voltage levels.
 
 The final prototype demonstrated active balancing during system testing and the final project demonstration. The implemented topology successfully transferred charge between adjacent cell groups, although the balancing current was relatively low and could be improved in a future design.
+
+<p align="center">
+  <img src="docs/images/active_balancing_oscilloscope.png" alt="Oscilloscope capture of active-balancing switching behavior" width="700">
+</p>
+
+<p align="center">
+  <em>Oscilloscope capture from active-balancing development and testing.</em>
+</p>
 
 ## UART Telemetry and LabVIEW Interface
 
@@ -117,6 +129,10 @@ The LabVIEW PC interface is located in:
 The interface receives UART telemetry from the STM32 and displays the battery measurements graphically for real-time monitoring.
 
 ## Hardware and Mechanical Design
+
+<p align="center">
+  <img src="docs/images/bms_hardware_prototype.png" alt="BMS prototype hardware during integration and testing" width="650">
+</p>
 
 Battery-pack and enclosure design files are located in:
 
