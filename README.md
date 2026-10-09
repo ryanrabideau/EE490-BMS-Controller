@@ -136,32 +136,31 @@ EE490-BMS-Controller/
 └── README.md
 ```
 
-## My Contributions
+## Team Contributions
 
-This was a four-person senior design project. My primary contributions focused on **embedded firmware integration, battery monitoring and protection, and system telemetry**.
+This project was completed by a four-person Kettering University senior electrical engineering design team. Responsibilities were divided across the major electrical, firmware, software, and mechanical subsystems, with all team members contributing to system integration, testing, and final project documentation.
 
-My work included:
+### Michael Collins
+- Battery-monitoring AFE integration and communication
+- Active-balancing hardware and control development
+- LabVIEW PC interface development
+- BMS hardware and firmware integration
 
-- STM32F411RE firmware development and integration
-- Cell-voltage acquisition and processing
-- Pack-current and temperature measurement integration
-- Battery fault-detection and protection logic
-- Master-relay control integration
-- USART2 telemetry implementation
-- Integration of battery measurements into the PC telemetry stream
-- Firmware debugging and hardware/software integration
-- Technical documentation and final project reporting
+### Matthew Herber
+- Mechanical design and CAD development
+- Battery and electronics enclosure design
+- 3D printing and mechanical integration
 
-## Team
+### Dillon Peterson
+- Battery-pack construction and electrical assembly
+- Cell interconnections and soldering
+- Prototype hardware construction and integration
 
-This project was completed as a four-person Kettering University senior electrical engineering design project by:
-
-- Ryan Rabideau
-- Michael Collins
-- Matthew Herber
-- Dillon Peterson
-
-The project combined embedded firmware, battery-management electronics, active-balancing circuitry, battery-pack construction, LabVIEW development, and mechanical design.
+### Ryan Rabideau
+- Embedded firmware development and integration
+- Cell-voltage, pack-current, and temperature measurement processing
+- Battery fault-protection and master-relay control integration
+- UART telemetry and hardware/software integration
 
 ## Project Results
 
