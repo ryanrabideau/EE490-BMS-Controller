@@ -192,4 +192,6 @@ Additional future improvements could include:
 
 ## Documentation
 
-Additional project documentation is located in the [`docs/`](docs/) directory.
+- [Final Project Report](docs/EE490_BMS_Final_Report.pdf)
+- [Final Project Poster](docs/EE490_BMS_Final_Poster.pdf)
+- [Project Documentation](docs/)
